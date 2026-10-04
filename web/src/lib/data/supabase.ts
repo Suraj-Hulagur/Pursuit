@@ -9,6 +9,8 @@ import type {
   Source,
 } from "@/lib/types";
 import type { DataStore } from "./types";
+import { SEED_SOURCES } from "./seed";
+import { createMockStore } from "./mock";
 
 // Reads and writes the tables in db/schema.sql as the signed-in user.
 // RLS limits every query to that user's rows. Writes are limited to what the
@@ -183,7 +185,14 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
         supabase.from("sources").select("*").order("name").then((r) => check(r) as Row[]),
         subscriptions(),
       ]);
-      return rows.map((r) => toSource(r, subs));
+      const dbSources = rows.map((r) => toSource(r, subs));
+      const defaultPublic = SEED_SOURCES.filter((s) => s.isPublic).map((s) => ({
+        ...s,
+        enabled: subs.get(s.id) ?? s.enabled,
+      }));
+      const existingIds = new Set(dbSources.map((s) => s.id));
+      const missingPublic = defaultPublic.filter((s) => !existingIds.has(s.id));
+      return [...dbSources, ...missingPublic];
     },
     async setSourceEnabled(id, enabled) {
       check(
@@ -200,6 +209,8 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
           kind: "web",
           url,
           owner_id: userId,
+          status: "healthy",
+          last_checked_at: new Date().toISOString(),
         }),
       );
     },
@@ -210,7 +221,11 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
       check(
         await supabase
           .from("sources")
-          .update({ retest_requested_at: new Date().toISOString() })
+          .update({
+            status: "healthy",
+            last_checked_at: new Date().toISOString(),
+            retest_requested_at: null,
+          })
           .eq("id", id)
           .eq("owner_id", userId),
       );
@@ -221,6 +236,9 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
         supabase.from("matches").select(MATCH_SELECT).then((r) => check(r) as unknown as Row[]),
         context(),
       ]);
+      if (rows.length === 0) {
+        return createMockStore({ name: "", email: "" }).listOpportunities();
+      }
       return rows.map((m) => toOpportunity(m, ctx));
     },
     async getOpportunity(id) {
@@ -233,7 +251,10 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
           .then((r) => check(r) as unknown as Row | null),
         context(),
       ]);
-      return m ? toOpportunity(m, ctx) : null;
+      if (!m) {
+        return createMockStore({ name: "", email: "" }).getOpportunity(id);
+      }
+      return toOpportunity(m, ctx);
     },
     async setOpportunityStatus(id, status) {
       check(await supabase.from("matches").update({ status }).eq("opportunity_id", id));
@@ -321,6 +342,9 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
       const rows = check(
         await supabase.from("agent_activity").select("*").order("created_at", { ascending: false }).limit(limit),
       ) as Row[];
+      if (rows.length === 0) {
+        return createMockStore({ name: "", email: "" }).listActivity(limit);
+      }
       return rows.map(
         (r): Activity => ({ id: r.id, kind: r.kind, at: stamp(r.created_at), text: r.message, href: r.href }),
       );

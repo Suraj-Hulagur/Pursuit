@@ -6,6 +6,10 @@ import type { Activity, Campaign, Opportunity, Source } from "@/lib/types";
 
 export const SEED_SOURCES: Source[] = [
   // public sources (everyone can toggle these)
+  { id: "src-unstop", name: "Unstop Competitions", kind: "web", url: "https://unstop.com", status: "healthy", lastChecked: "5 min ago", isPublic: true, enabled: true },
+  { id: "src-devfolio", name: "Devfolio Hackathons", kind: "web", url: "https://devfolio.co", status: "healthy", lastChecked: "18 min ago", isPublic: true, enabled: true },
+  { id: "src-mlh", name: "Major League Hacking (MLH)", kind: "web", url: "https://mlh.io", status: "healthy", lastChecked: "42 min ago", isPublic: true, enabled: true },
+  { id: "src-reddit-scholarships", name: "Reddit r/scholarships", kind: "web", url: "https://reddit.com/r/scholarships", status: "healthy", lastChecked: "10 min ago", isPublic: true, enabled: true },
   { id: "src-campus", name: "Campus Notices", kind: "web", url: "https://example.org/notices", status: "healthy", lastChecked: "12 min ago", isPublic: true, enabled: true },
   { id: "src-opencalls", name: "Open Calls Weekly", kind: "web", url: "https://example.com/open-calls", status: "healthy", lastChecked: "1 h ago", isPublic: true, enabled: true },
   { id: "src-finder", name: "Fellowship Finder", kind: "web", url: "https://example.net/fellowships", status: "repairing", lastChecked: "Today 06:40", isPublic: true, enabled: true },
