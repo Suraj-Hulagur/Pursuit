@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getData } from "@/lib/data";
 import { getUser } from "@/lib/auth";
-import { forwardDecision } from "@/lib/n8n";
+import { forwardDecision, runIntake, type IntakeResult } from "@/lib/n8n";
 import type { MatchStatus, ProfileInput, StepAction, StepKind } from "@/lib/types";
 
 // Thin wrappers: store the user's decision through the data layer, tell n8n,
@@ -152,4 +152,26 @@ export async function retestSourceAction(id: string) {
   const db = await getData();
   await db.retestSource(id);
   refresh();
+}
+
+// ---------------------------------------------------------------- intake
+
+// Sends a link or pasted text to the n8n Intake workflow and returns what it
+// extracted. Nothing is saved yet; the dashboard just shows the result.
+export async function checkOpportunityAction(input: string): Promise<IntakeResult> {
+  await getData(); // signed-in users only
+  const value = input.trim();
+  if (!value) return { ok: false, executionId: null, error: "Paste a link or some text first." };
+  if (value.length > 40_000) return { ok: false, executionId: null, error: "That's too long. Paste under 40,000 characters." };
+
+  let url: URL | null = null;
+  try {
+    url = new URL(value);
+  } catch {
+    url = null;
+  }
+  if (url && url.protocol !== "http:" && url.protocol !== "https:") {
+    return { ok: false, executionId: null, error: "Only http and https links can be checked." };
+  }
+  return runIntake(url ? { url: url.toString() } : { text: value });
 }
