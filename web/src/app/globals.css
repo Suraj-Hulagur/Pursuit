@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f3efe6;
+  --paper-deep: #e9e3d6;
+  --card: #fbf9f4;
+  --ink: #16140f;
+  --ink-soft: #5d584d;
+  --rule: #d6cfbf;
+  --signal: #e2502c;
+  --go: #2d6a4f;
+  --go-tint: #dcebe1;
+  --maybe: #b7791f;
+  --maybe-tint: #f5e7c8;
+  --no: #8a8478;
+  --no-tint: #e7e2d8;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-rule: var(--rule);
+  --color-signal: var(--signal);
+  --color-go: var(--go);
+  --color-go-tint: var(--go-tint);
+  --color-maybe: var(--maybe);
+  --color-maybe-tint: var(--maybe-tint);
+  --color-no: var(--no);
+  --color-no-tint: var(--no-tint);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-instrument-serif);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  /* faint paper grain */
+  background-image: radial-gradient(rgba(22, 20, 15, 0.035) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--card);
+}
+
+.eyebrow {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}

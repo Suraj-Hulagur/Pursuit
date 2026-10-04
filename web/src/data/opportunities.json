@@ -1,0 +1,204 @@
+{
+  "_note": "Dummy data for UI development. Program names are real, but clauses, dates and amounts are paraphrased or illustrative, not official. Replace with Supabase reads once /db is wired up.",
+  "student": {
+    "name": "Ananya Rao",
+    "course": "B.Tech Computer Science, 3rd year",
+    "college": "RV College of Engineering, Bengaluru",
+    "cgpa": 8.4,
+    "familyIncome": "₹4.8 LPA",
+    "state": "Karnataka"
+  },
+  "week": {
+    "label": "Oct 5 – Oct 11",
+    "days": [
+      { "day": "Mon", "date": 5, "busy": ["Classes 9–4", "DSA lab"], "freeHours": 2 },
+      { "day": "Tue", "date": 6, "busy": ["Classes 9–4"], "freeHours": 3 },
+      { "day": "Wed", "date": 7, "busy": ["Classes 9–1", "Club meet"], "freeHours": 4 },
+      { "day": "Thu", "date": 8, "busy": ["Classes 9–4", "Mini-project review"], "freeHours": 1 },
+      { "day": "Fri", "date": 9, "busy": ["Classes 9–2"], "freeHours": 4 },
+      { "day": "Sat", "date": 10, "busy": [], "freeHours": 7 },
+      { "day": "Sun", "date": 11, "busy": ["Family"], "freeHours": 5 }
+    ]
+  },
+  "opportunities": [
+    {
+      "id": "sih-2026",
+      "title": "Smart India Hackathon 2026",
+      "org": "Ministry of Education, Innovation Cell",
+      "type": "hackathon",
+      "verdict": "eligible",
+      "deadline": "2026-10-09",
+      "reward": "₹1,00,000 prize per problem statement",
+      "rewardScore": 4,
+      "effortHours": 10,
+      "effortScore": 3,
+      "clause": "Teams must consist of exactly 6 members, all students from the same institute, with at least one female member in the team.",
+      "clauseSource": "SIH 2026 Guidelines, §3.1 Team Formation",
+      "reasoning": "Ananya is enrolled full-time at RVCE and her team of 6 includes 2 women. All conditions met.",
+      "source": "Forwarded via Gmail · Oct 2",
+      "rank": 1,
+      "fit": "Internal round submission fits Saturday's 7 free hours."
+    },
+    {
+      "id": "flipkart-grid-7",
+      "title": "Flipkart GRiD 7.0 — Software Development Track",
+      "org": "Flipkart",
+      "type": "internship",
+      "verdict": "eligible",
+      "deadline": "2026-10-14",
+      "reward": "Pre-placement interview + ₹1,00,000 prize pool",
+      "rewardScore": 5,
+      "effortHours": 6,
+      "effortScore": 2,
+      "clause": "Open to students pursuing B.E./B.Tech/M.E./M.Tech/Dual Degree in any engineering stream, graduating in 2027 or 2028.",
+      "clauseSource": "GRiD 7.0 Rules, Eligibility",
+      "reasoning": "B.Tech CSE, expected graduation 2027. Matches stream and batch.",
+      "source": "Found by Pursuit · Unstop listing",
+      "rank": 2,
+      "fit": "Registration + quiz prep spread across Wed and Fri evenings."
+    },
+    {
+      "id": "foss-united-grant",
+      "title": "FOSS United Grants",
+      "org": "FOSS United Foundation",
+      "type": "grant",
+      "verdict": "eligible",
+      "deadline": "2026-10-20",
+      "reward": "Up to ₹2,50,000 for your open source project",
+      "rewardScore": 4,
+      "effortHours": 8,
+      "effortScore": 3,
+      "clause": "Grants are open to individuals and teams based in India building free and open source software released under an OSI-approved licence.",
+      "clauseSource": "FOSS United Grants FAQ",
+      "reasoning": "Her project 'kannada-ocr' is MIT-licensed on GitHub and she is based in Bengaluru.",
+      "source": "Found by Pursuit · foss.community",
+      "rank": 3,
+      "fit": "Proposal draft on Sunday; needs one recommendation from her mentor."
+    },
+    {
+      "id": "hdfc-ecss",
+      "title": "HDFC Bank Parivartan's ECSS Scholarship",
+      "org": "HDFC Bank via Buddy4Study",
+      "type": "scholarship",
+      "verdict": "unclear",
+      "deadline": "2026-10-31",
+      "reward": "Up to ₹50,000 per year",
+      "rewardScore": 3,
+      "effortHours": 3,
+      "effortScore": 1,
+      "clause": "Applicants with annual family income below ₹2,50,000 are eligible. Preference is given to students who have faced a personal or family crisis in the last 3 years.",
+      "clauseSource": "Scholarship notice, Eligibility (2)",
+      "reasoning": "Family income of ₹4.8 LPA is above the stated cap, but the notice also mentions a separate crisis category with no income limit. Needs a human to check.",
+      "source": "Forwarded via Gmail · Sep 29",
+      "rank": null,
+      "fit": null
+    },
+    {
+      "id": "iasc-srfp-2027",
+      "title": "IASc-INSA-NASI Summer Research Fellowship 2027",
+      "org": "Indian Academy of Sciences",
+      "type": "internship",
+      "verdict": "unclear",
+      "deadline": "2026-11-30",
+      "reward": "8-week research stint at an IISc/IIT lab + stipend",
+      "rewardScore": 5,
+      "effortHours": 9,
+      "effortScore": 4,
+      "clause": "Students should have a consistently good academic record. Engineering students must be in the 2nd or 3rd year of a four-year programme at the time of application.",
+      "clauseSource": "SRFP 2027 Notification, Who can apply",
+      "reasoning": "Year of study qualifies. 'Consistently good' is not defined; past selections suggest roughly 8.5+ CGPA and she has 8.4.",
+      "source": "Found by Pursuit · ias.ac.in",
+      "rank": null,
+      "fit": null
+    },
+    {
+      "id": "ethindia-2026",
+      "title": "ETHIndia 2026",
+      "org": "Devfolio",
+      "type": "hackathon",
+      "verdict": "unclear",
+      "deadline": "2026-10-25",
+      "reward": "$100k+ in bounties, travel reimbursement",
+      "rewardScore": 4,
+      "effortHours": 36,
+      "effortScore": 5,
+      "clause": "Applications are reviewed by the organising team. Prior experience building on Ethereum or other blockchains is strongly recommended.",
+      "clauseSource": "ETHIndia application page",
+      "reasoning": "Anyone can apply, but acceptance depends on blockchain experience, and her profile shows none.",
+      "source": "Found by Pursuit · devfolio.co",
+      "rank": null,
+      "fit": null
+    },
+    {
+      "id": "reliance-ug-2026",
+      "title": "Reliance Foundation Undergraduate Scholarship",
+      "org": "Reliance Foundation",
+      "type": "scholarship",
+      "verdict": "not_eligible",
+      "deadline": "2026-10-12",
+      "reward": "Up to ₹2,00,000 over the degree",
+      "rewardScore": 5,
+      "effortHours": 4,
+      "effortScore": 2,
+      "clause": "Applicants must be enrolled in the first year of a full-time undergraduate degree programme in any stream at a recognised institution in India.",
+      "clauseSource": "RF Scholarships 2026-27, Eligibility Criteria (a)",
+      "reasoning": "Ananya is in her 3rd year. Only first-year students qualify.",
+      "source": "Forwarded via Gmail · Oct 1",
+      "rank": null,
+      "fit": null
+    },
+    {
+      "id": "inspire-she",
+      "title": "INSPIRE Scholarship for Higher Education (SHE)",
+      "org": "Department of Science & Technology",
+      "type": "scholarship",
+      "verdict": "not_eligible",
+      "deadline": "2026-11-15",
+      "reward": "₹80,000 per year",
+      "rewardScore": 4,
+      "effortHours": 3,
+      "effortScore": 1,
+      "clause": "The scholarship is available to students pursuing B.Sc., B.S., Int. M.Sc. or Int. M.S. courses in Natural and Basic Sciences. Professional courses such as engineering and medicine are not covered.",
+      "clauseSource": "INSPIRE-SHE Guidelines, §4 Eligibility",
+      "reasoning": "B.Tech counts as an engineering course, which the clause leaves out.",
+      "source": "Found by Pursuit · online-inspire.gov.in",
+      "rank": null,
+      "fit": null
+    }
+  ],
+  "campaigns": {
+    "sih-2026": {
+      "steps": [
+        { "kind": "found", "status": "done", "at": "Oct 2, 09:14", "title": "Found", "detail": "Read from a Gmail forward by Ananya. Parsed problem statements PS-1734 and PS-1781." },
+        { "kind": "verified", "status": "done", "at": "Oct 2, 09:15", "title": "Eligibility verified", "detail": "Matched §3.1 Team Formation. Team roster has 6 members, all from RVCE, 2 women." },
+        { "kind": "drafted", "status": "done", "at": "Oct 3, 18:40", "title": "Idea submission drafted", "detail": "Abstract, approach and impact sections for PS-1734 (Kannada document digitisation).", "draft": "Title: Akshara — offline OCR for Kannada government records\n\nProblem: District offices hold decades of handwritten Kannada records that can't be searched.\n\nApproach: A lightweight on-device OCR model fine-tuned on 40k labelled Kannada glyphs, with a review UI for clerks.\n\nImpact: Makes 1.2M+ pages searchable without cloud upload, keeping citizen data on-premise." },
+        { "kind": "approved", "status": "pending", "at": "Waiting on you", "title": "Approve submission", "detail": "The pre-submission referee flagged nothing. Approve to submit on the SIH portal before the internal round closes Oct 9.", "draft": "Title: Akshara — offline OCR for Kannada government records\n\nProblem: District offices hold decades of handwritten Kannada records that can't be searched.\n\nApproach: A lightweight on-device OCR model fine-tuned on 40k labelled Kannada glyphs, with a review UI for clerks.\n\nImpact: Makes 1.2M+ pages searchable without cloud upload, keeping citizen data on-premise." },
+        { "kind": "sent", "status": "upcoming", "at": "By Oct 9", "title": "Submitted", "detail": "Submitted to the college SPOC for the internal hackathon round." },
+        { "kind": "follow_up", "status": "upcoming", "at": "Oct 16", "title": "Follow up due", "detail": "Check internal round results with the SPOC and nudge if nothing is posted." },
+        { "kind": "recommendation", "status": "upcoming", "at": "Oct 18", "title": "Recommendation requested", "detail": "Ask Dr. Meera Iyer for a mentor endorsement letter for the final round." }
+      ]
+    },
+    "flipkart-grid-7": {
+      "steps": [
+        { "kind": "found", "status": "done", "at": "Sep 30, 21:02", "title": "Found", "detail": "Found on Unstop by the nightly opportunity scan." },
+        { "kind": "verified", "status": "done", "at": "Sep 30, 21:03", "title": "Eligibility verified", "detail": "B.Tech CSE, graduating 2027, matches the eligibility rule." },
+        { "kind": "drafted", "status": "done", "at": "Oct 1, 10:20", "title": "Registration drafted", "detail": "Profile, resume link and team details pre-filled." },
+        { "kind": "approved", "status": "done", "at": "Oct 1, 19:05", "title": "Approved", "detail": "Approved by Ananya by Gmail reply." },
+        { "kind": "sent", "status": "done", "at": "Oct 1, 19:06", "title": "Registered", "detail": "Registration confirmed. Round 1 quiz opens Oct 12." },
+        { "kind": "follow_up", "status": "pending", "at": "Waiting on you", "title": "Follow up due", "detail": "Send a reminder to teammate Rohan, who hasn't accepted the team invite yet.", "draft": "Hey Rohan, quick nudge: the GRiD team invite is still pending on Unstop and registration locks Oct 14. Takes 30 seconds to accept. Thanks!" },
+        { "kind": "recommendation", "status": "upcoming", "at": "—", "title": "Recommendation requested", "detail": "Not required for this opportunity." }
+      ]
+    },
+    "foss-united-grant": {
+      "steps": [
+        { "kind": "found", "status": "done", "at": "Oct 3, 07:30", "title": "Found", "detail": "Matched her GitHub project 'kannada-ocr' to the open grants call." },
+        { "kind": "verified", "status": "done", "at": "Oct 3, 07:31", "title": "Eligibility verified", "detail": "MIT licence (OSI-approved). Applicant based in India." },
+        { "kind": "drafted", "status": "pending", "at": "Waiting on you", "title": "Proposal drafted", "detail": "Draft of the proposal summary and budget. Review before it goes to the referee.", "draft": "kannada-ocr is an MIT-licensed OCR toolkit for Kannada script. A grant of ₹1,50,000 would fund 4 months of work on: (1) a labelled handwriting dataset released under CC-BY, (2) a CPU-only inference build for low-end machines, (3) documentation in Kannada and English." },
+        { "kind": "approved", "status": "upcoming", "at": "—", "title": "Approve proposal", "detail": "Final approval after the pre-submission referee check." },
+        { "kind": "sent", "status": "upcoming", "at": "By Oct 20", "title": "Submitted", "detail": "Submit through the FOSS United grants form." },
+        { "kind": "follow_up", "status": "upcoming", "at": "Nov 3", "title": "Follow up due", "detail": "Polite status check if there's no response in 2 weeks." },
+        { "kind": "recommendation", "status": "pending", "at": "Waiting on you", "title": "Recommendation requested", "detail": "Ask Prof. Arvind Kulkarni (project mentor) for a short endorsement.", "draft": "Dear Prof. Kulkarni,\n\nI'm applying for a FOSS United grant for kannada-ocr, the project you've guided since last semester. Would you be willing to write a short endorsement (3–4 lines) by Oct 17? I've attached the proposal summary.\n\nThank you,\nAnanya" }
+      ]
+    }
+  }
+}
