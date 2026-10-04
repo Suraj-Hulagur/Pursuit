@@ -6,10 +6,13 @@
       "name": "Intake Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
-      "position": [0, 300],
+      "position": [
+        0,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
-        "path": "pursuit-intake",
+        "path": "<secret-path>",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -20,14 +23,27 @@
       "name": "Normalize Input",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [220, 300],
+      "position": [
+        220,
+        300
+      ],
       "parameters": {
         "mode": "manual",
         "includeOtherFields": false,
         "assignments": {
           "assignments": [
-            { "id": "in-url", "name": "url", "value": "={{ String($json.body?.url ?? $json.url ?? \"\").trim() }}", "type": "string" },
-            { "id": "in-text", "name": "text", "value": "={{ String($json.body?.text ?? $json.text ?? (typeof $json.body === \"string\" ? $json.body : \"\")).trim() }}", "type": "string" }
+            {
+              "id": "in-url",
+              "name": "url",
+              "value": "={{ String($json.body?.url ?? $json.url ?? \"\").trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "in-text",
+              "name": "text",
+              "value": "={{ String($json.body?.text ?? $json.text ?? (typeof $json.body === \"string\" ? $json.body : \"\")).trim() }}",
+              "type": "string"
+            }
           ]
         }
       }
@@ -37,12 +53,26 @@
       "name": "Has URL?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
-            { "leftValue": "={{ $json.url }}", "operator": { "type": "string", "operation": "notEmpty", "singleValue": true } }
+            {
+              "leftValue": "={{ $json.url }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
           ],
           "combinator": "and"
         }
@@ -53,7 +83,10 @@
       "name": "Fetch Page",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [660, 200],
+      "position": [
+        660,
+        200
+      ],
       "parameters": {
         "method": "GET",
         "url": "={{ $json.url }}",
@@ -61,14 +94,30 @@
         "specifyHeaders": "keypair",
         "headerParameters": {
           "parameters": [
-            { "name": "User-Agent", "value": "Mozilla/5.0 (compatible; PursuitIntake/1.0)" },
-            { "name": "Accept", "value": "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8" }
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; PursuitIntake/1.0)"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8"
+            }
           ]
         },
         "options": {
           "timeout": 20000,
-          "redirect": { "redirect": { "followRedirects": true, "maxRedirects": 5 } },
-          "response": { "response": { "responseFormat": "text", "outputPropertyName": "html" } }
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "html"
+            }
+          }
         }
       },
       "onError": "continueErrorOutput"
@@ -78,14 +127,27 @@
       "name": "Page To Text",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [880, 200],
+      "position": [
+        880,
+        200
+      ],
       "parameters": {
         "mode": "manual",
         "includeOtherFields": false,
         "assignments": {
           "assignments": [
-            { "id": "pt-url", "name": "sourceUrl", "value": "={{ $(\"Normalize Input\").item.json.url }}", "type": "string" },
-            { "id": "pt-text", "name": "sourceText", "value": "={{ String($json.html ?? \"\").replace(/<!--[\\s\\S]*?-->/g, \" \").replace(/<(script|style|noscript|svg|nav|footer|header|aside|form|select|button|template|iframe)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, \" \").replace(/<div[^>]*(cookie|consent|gdpr)[^>]*>[\\s\\S]*?<\\/div>/gi, \" \").replace(/<br\\s*\\/?>|<\\/(p|div|li|h[1-6]|tr|section|article)>/gi, \"\\n\").replace(/<[^>]+>/g, \" \").replace(/&#(\\d+);/g, (m, n) => String.fromCharCode(Number(n))).replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCharCode(parseInt(h, 16))).replace(/&nbsp;/g, \" \").replace(/&amp;/g, \"&\").replace(/&rsquo;|&lsquo;/g, \"'\").replace(/&quot;|&ldquo;|&rdquo;/g, '\"').replace(/&lt;/g, \"<\").replace(/&gt;/g, \">\").replace(/[ \\t]+/g, \" \").replace(/ *\\n */g, \"\\n\").replace(/\\n{2,}/g, \"\\n\").trim().slice(0, 40000) }}", "type": "string" }
+            {
+              "id": "pt-url",
+              "name": "sourceUrl",
+              "value": "={{ $(\"Normalize Input\").item.json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "pt-text",
+              "name": "sourceText",
+              "value": "={{ String($json.html ?? \"\").replace(/<!--[\\s\\S]*?-->/g, \" \").replace(/<(script|style|noscript|svg|nav|footer|header|aside|form|select|button|template|iframe)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, \" \").replace(/<div[^>]*(cookie|consent|gdpr)[^>]*>[\\s\\S]*?<\\/div>/gi, \" \").replace(/<br\\s*\\/?>|<\\/(p|div|li|h[1-6]|tr|section|article)>/gi, \"\\n\").replace(/<[^>]+>/g, \" \").replace(/&#(\\d+);/g, (m, n) => String.fromCharCode(Number(n))).replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCharCode(parseInt(h, 16))).replace(/&nbsp;/g, \" \").replace(/&amp;/g, \"&\").replace(/&rsquo;|&lsquo;/g, \"'\").replace(/&quot;|&ldquo;|&rdquo;/g, '\"').replace(/&lt;/g, \"<\").replace(/&gt;/g, \">\").replace(/[ \\t]+/g, \" \").replace(/ *\\n */g, \"\\n\").replace(/\\n{2,}/g, \"\\n\").trim().slice(0, 40000) }}",
+              "type": "string"
+            }
           ]
         }
       }
@@ -95,11 +157,16 @@
       "name": "Respond Fetch Failed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [880, 40],
+      "position": [
+        880,
+        40
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { \"ok\": false, \"executionId\": $execution.id, \"error\": \"Could not fetch that page. It may block automated requests or need a login. Try pasting the text instead.\", \"detail\": $json.error?.message ?? $json.error ?? null } }}",
-        "options": { "responseCode": 502 }
+        "options": {
+          "responseCode": 502
+        }
       }
     },
     {
@@ -107,12 +174,26 @@
       "name": "Has Text?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [660, 420],
+      "position": [
+        660,
+        420
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
-            { "leftValue": "={{ $json.text }}", "operator": { "type": "string", "operation": "notEmpty", "singleValue": true } }
+            {
+              "leftValue": "={{ $json.text }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
           ],
           "combinator": "and"
         }
@@ -123,14 +204,27 @@
       "name": "Use Pasted Text",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [880, 380],
+      "position": [
+        880,
+        380
+      ],
       "parameters": {
         "mode": "manual",
         "includeOtherFields": false,
         "assignments": {
           "assignments": [
-            { "id": "tx-url", "name": "sourceUrl", "value": "", "type": "string" },
-            { "id": "tx-text", "name": "sourceText", "value": "={{ $json.text.slice(0, 40000) }}", "type": "string" }
+            {
+              "id": "tx-url",
+              "name": "sourceUrl",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "tx-text",
+              "name": "sourceText",
+              "value": "={{ $json.text.slice(0, 40000) }}",
+              "type": "string"
+            }
           ]
         }
       }
@@ -140,11 +234,16 @@
       "name": "Respond Missing Input",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [880, 560],
+      "position": [
+        880,
+        560
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { \"ok\": false, \"executionId\": $execution.id, \"error\": \"Send { url } or { text }.\" } }}",
-        "options": { "responseCode": 400 }
+        "options": {
+          "responseCode": 400
+        }
       }
     },
     {
@@ -152,7 +251,10 @@
       "name": "Extract Opportunity",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "parameters": {
         "promptType": "define",
         "text": "=Source URL: {{ $json.sourceUrl || \"(pasted text)\" }}\n\nSource text:\n\"\"\"\n{{ $json.sourceText }}\n\"\"\"",
@@ -173,13 +275,21 @@
       "name": "Gemini Flash",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
-      "position": [1100, 520],
+      "position": [
+        1100,
+        520
+      ],
       "parameters": {
         "modelName": "models/gemini-2.5-flash",
-        "options": { "temperature": 0, "maxOutputTokens": 8192 }
+        "options": {
+          "temperature": 0,
+          "maxOutputTokens": 8192
+        }
       },
       "credentials": {
-        "googlePalmApi": { "name": "Google Gemini(PaLM) Api account" }
+        "googlePalmApi": {
+          "name": "Google Gemini(PaLM) Api account"
+        }
       }
     },
     {
@@ -187,7 +297,10 @@
       "name": "Opportunity Schema",
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
-      "position": [1260, 520],
+      "position": [
+        1260,
+        520
+      ],
       "parameters": {
         "schemaType": "manual",
         "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"title\": { \"type\": \"string\", \"description\": \"Name of the opportunity\" },\n    \"type\": { \"type\": \"string\", \"enum\": [\"scholarship\", \"hackathon\", \"internship\", \"event\", \"grant\", \"other\"] },\n    \"org\": { \"type\": \"string\", \"description\": \"Organisation running it, or empty string if not stated\" },\n    \"deadline\": { \"type\": \"string\", \"description\": \"Application deadline as YYYY-MM-DD, or empty string if not stated\" },\n    \"deadlineText\": { \"type\": \"string\", \"description\": \"Deadline exactly as written on the page, or empty string\" },\n    \"reward\": { \"type\": \"string\", \"description\": \"What the applicant gets (amount, stipend, prize), or empty string\" },\n    \"eligibility\": {\n      \"type\": \"array\",\n      \"description\": \"Eligibility rules, each quoted verbatim from the source\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"clause\": { \"type\": \"string\", \"description\": \"Exact verbatim quote from the source text\" },\n          \"summary\": { \"type\": \"string\", \"description\": \"Plain-language summary of the rule in under 12 words\" }\n        },\n        \"required\": [\"clause\", \"summary\"]\n      }\n    },\n    \"documents\": { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"description\": \"Documents the applicant must submit\" },\n    \"isOpportunity\": { \"type\": \"boolean\", \"description\": \"False if the text does not describe an opportunity\" }\n  },\n  \"required\": [\"title\", \"type\", \"org\", \"deadline\", \"deadlineText\", \"reward\", \"eligibility\", \"documents\", \"isOpportunity\"]\n}",
@@ -199,7 +312,10 @@
       "name": "Verify Quotes",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1300, 220],
+      "position": [
+        1300,
+        220
+      ],
       "parameters": {
         "mode": "manual",
         "includeOtherFields": false,
@@ -220,11 +336,16 @@
       "name": "Respond With Extraction",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1520, 220],
+      "position": [
+        1520,
+        220
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { \"ok\": true, \"executionId\": $execution.id, \"sourceUrl\": $(\"Normalize Input\").item.json.url || null, \"extracted\": $json.extracted } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -232,11 +353,16 @@
       "name": "Respond Extraction Failed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1400, 400],
+      "position": [
+        1400,
+        400
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { \"ok\": false, \"executionId\": $execution.id, \"error\": \"The AI step could not extract structured details from this page.\", \"detail\": $json.error?.message ?? $json.error ?? null } }}",
-        "options": { "responseCode": 500 }
+        "options": {
+          "responseCode": 500
+        }
       }
     },
     {
@@ -244,7 +370,10 @@
       "name": "About this workflow",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-60, -40],
+      "position": [
+        -60,
+        -40
+      ],
       "parameters": {
         "content": "## Pursuit · Intake\nPOST `{ \"url\": \"...\" }` or `{ \"text\": \"...\" }`.\nFetches the page, strips HTML, and asks Gemini Flash for title, type, org, deadline, reward, verbatim eligibility clauses and documents.\nReturns JSON. No secrets in this workflow: Gemini uses the stored n8n credential.",
         "color": 4
@@ -252,49 +381,167 @@
     }
   ],
   "connections": {
-    "Intake Webhook": { "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]] },
-    "Normalize Input": { "main": [[{ "node": "Has URL?", "type": "main", "index": 0 }]] },
+    "Intake Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Has URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Has URL?": {
       "main": [
-        [{ "node": "Fetch Page", "type": "main", "index": 0 }],
-        [{ "node": "Has Text?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Fetch Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Fetch Page": {
       "main": [
-        [{ "node": "Page To Text", "type": "main", "index": 0 }],
-        [{ "node": "Respond Fetch Failed", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Page To Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Fetch Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Page To Text": { "main": [[{ "node": "Extract Opportunity", "type": "main", "index": 0 }]] },
+    "Page To Text": {
+      "main": [
+        [
+          {
+            "node": "Extract Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Has Text?": {
       "main": [
-        [{ "node": "Use Pasted Text", "type": "main", "index": 0 }],
-        [{ "node": "Respond Missing Input", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Use Pasted Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Missing Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Use Pasted Text": { "main": [[{ "node": "Extract Opportunity", "type": "main", "index": 0 }]] },
+    "Use Pasted Text": {
+      "main": [
+        [
+          {
+            "node": "Extract Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Extract Opportunity": {
       "main": [
-        [{ "node": "Verify Quotes", "type": "main", "index": 0 }],
-        [{ "node": "Respond Extraction Failed", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Verify Quotes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Extraction Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Gemini Flash": {
       "ai_languageModel": [
         [
-          { "node": "Extract Opportunity", "type": "ai_languageModel", "index": 0 },
-          { "node": "Opportunity Schema", "type": "ai_languageModel", "index": 0 }
+          {
+            "node": "Extract Opportunity",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Opportunity Schema",
+            "type": "ai_languageModel",
+            "index": 0
+          }
         ]
       ]
     },
-    "Opportunity Schema": { "ai_outputParser": [[{ "node": "Extract Opportunity", "type": "ai_outputParser", "index": 0 }]] },
-    "Verify Quotes": { "main": [[{ "node": "Respond With Extraction", "type": "main", "index": 0 }]] }
+    "Opportunity Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Extract Opportunity",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Quotes": {
+      "main": [
+        [
+          {
+            "node": "Respond With Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "pinData": {},
   "meta": {
     "exportedFrom": "n8n cloud workflow gDvRay2octtKDwd4 (version d4edc4be)",
-    "note": "No secrets. On import, select your Google Gemini credential on the 'Gemini Flash' node."
+    "note": "No secrets. The webhook path is replaced with <secret-path>: set your own unguessable path after import and keep it out of git. Select your Google Gemini credential on the 'Gemini Flash' node."
   }
 }
