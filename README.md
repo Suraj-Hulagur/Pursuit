@@ -2,8 +2,6 @@
 
 Pursuit helps students find scholarships, internships, hackathons and grants they actually qualify for, and then helps them see each application through.
 
-Built for HackSprint 2026 at MIT Bengaluru, Track 2: AI Automation with n8n.
-
 **Live demo:** https://pursuit-web.onrender.com
 
 ## The problem
@@ -20,19 +18,23 @@ A student fills in their profile once. Pursuit then:
 4. **Runs the application.** For each opportunity the student takes up, a campaign tracks every step: drafted, approved, sent, follow up due, recommendation requested.
 5. **Waits for approval.** Every draft goes to an approvals queue, where the student approves, edits or skips it. Nothing is sent without their yes.
 
-## What works today
+## Current progress
 
-| Part                                                                                                             | Status                     |
-| ---------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| Intake workflow on n8n Cloud (link or text in, Gemini extraction, quote verification)                            | Live                       |
-| "Check it" on the dashboard calling that workflow                                                                | Live                       |
-| Web app: login, onboarding, dashboard, opportunities, opportunity detail, campaigns, approvals, sources, profile | Built, on sample data      |
-| Supabase schema and seed (`db/`)                                                                                 | Written, not connected yet |
-| Matcher, ranker, campaign runner, notifier, Source Doctor, chat agent                                            | Planned for the hackathon  |
+So far we have the intake step working end to end. You paste a link or some text into the dashboard, the app sends it to our n8n workflow, Gemini pulls out the details, and every eligibility clause it quotes is checked against the original page. We tried it on the Chevening scholarship page: it found 14 clauses and all 14 matched the page exactly. One run takes about 9 seconds.
 
-On a real Chevening scholarship page, the intake workflow pulled out 14 eligibility clauses and all 14 matched the page word for word. A run takes about 9 seconds.
+The rest of the web app is built too: login, onboarding, dashboard, opportunity list and detail pages, campaigns, approvals, sources and profile. These pages run on made up sample data for now, since there is no database yet. Every organisation, clause and date in `web/src/lib/data/seed.ts` is fictional, and the app labels it as sample data.
 
-The opportunities, sources and campaigns shown in the app are fictional sample data. Every organisation name, clause and date in `web/src/lib/data/seed.ts` is made up, and the UI marks it as sample data.
+## Future plan
+
+During the 24 hours we want to build:
+
+- a database, so opportunities, matches and campaigns are saved
+- a scanner that checks sources every few hours for new opportunities
+- a matcher that compares each opportunity with the student's profile
+- the campaign runner that drafts emails, follows up and asks for recommendation letters
+- approvals and reminders over Gmail
+- a Source Doctor that fixes a source when its page layout changes
+- a chat assistant for quick questions and changes
 
 ## How it fits together
 
@@ -51,14 +53,14 @@ The opportunities, sources and campaigns shown in the app are fictional sample d
 
 The web app never talks to Gemini directly. The Gemini key is stored as a credential in n8n, and the app only knows the n8n webhook URL, which is kept on the server and never sent to the browser.
 
-When Supabase is connected, n8n will write opportunities, matches and campaign state to it, and the web app will read from it.
+At the hackathon we plan to add a database, so n8n can save opportunities, matches and campaign state and the web app can read them back.
 
 ## Tech stack
 
 - **Web:** Next.js, TypeScript, Tailwind CSS
 - **Agent workflows:** n8n Cloud
 - **AI:** Google Gemini 2.5 Flash, called from n8n
-- **Database and auth:** Supabase (schema ready, app runs in mock mode for now)
+- **Data:** in memory sample data for now
 - **Hosting:** Render for the web app
 
 ## Repo layout
@@ -66,7 +68,7 @@ When Supabase is connected, n8n will write opportunities, matches and campaign s
 ```
 web/         Next.js app
 workflows/   n8n workflows exported as JSON
-db/          Supabase schema.sql and seed.sql
+db/          draft database schema for later
 render.yaml  Render deploy config
 ```
 
@@ -80,21 +82,14 @@ npm run dev
 
 Open http://localhost:3000 and sign in with any name and email. The app starts in mock mode, so nothing else is needed. Sample data lives in server memory and resets when the server restarts.
 
-To use the real intake workflow, copy `web/.env.example` to `web/.env.local` and set `N8N_INTAKE_WEBHOOK` to n8n production webhook URL. Without it, "Check it" will not reach n8n.
+To use the real intake workflow, copy `web/.env.example` to `web/.env.local` and set `N8N_INTAKE_WEBHOOK` to the workflow's production webhook URL. Without it, "Check it" will not reach n8n.
 
 ### Import the n8n workflow
 
 1. In n8n, import `workflows/pursuit-intake.json`.
 2. Add a Google Gemini credential and select it on the Gemini Flash node.
-3. Set own webhook path on the Intake Webhook node (the export has a placeholder).
+3. Set a webhook path of choice on the Intake Webhook node (the export has a placeholder).
 4. Activate the workflow and copy its production URL into `web/.env.local`.
-
-### Switch to Supabase
-
-1. Run `db/schema.sql` and then `db/seed.sql` in the Supabase SQL editor.
-2. Set `NEXT_PUBLIC_DATA_MODE=supabase`, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-3. In Supabase, set the Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` as a redirect URL.
-4. Sign up, then give the account the sample data with `select public.seed_demo_for_user('<user id>');`.
 
 ## Deploy
 
@@ -107,8 +102,6 @@ The web app deploys to Render from `render.yaml`.
 On the free plan the app sleeps after about 15 minutes without visitors, so the first load can take up to a minute. Intake checks are limited to 10 per user per hour so a public demo can't use up the Gemini quota.
 
 ## Team
-
-We're two CSE students from UVCE, Bengaluru, and we built Pursuit because we kept missing deadlines for things we were eligible for.
 
 | Name           | GitHub                                             | Email                  |
 | -------------- | -------------------------------------------------- | ---------------------- |
