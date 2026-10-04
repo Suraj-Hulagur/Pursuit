@@ -1,104 +1,116 @@
-# Pursuit: your talent agent
+# Pursuit
 
-Students miss the scholarships, internships, hackathons and grants they qualify for. Usually it isn't for lack of merit. Finding them, checking eligibility and keeping up with applications takes hours they don't have.
+Pursuit helps students find scholarships, internships, hackathons and grants they actually qualify for, and then helps them see each application through.
 
-**Pursuit works like a talent agent.** It finds opportunities, **proves you're eligible by quoting the exact clause**, picks the **top 3 that fit your calendar this week**, and then **runs each application over weeks**: drafting, following up and asking for recommendations. **Nothing is sent without your approval.**
+Built for HackSprint 2026 at MIT Bengaluru, Track 2: AI Automation with n8n.
 
-## What it does
+**Live demo:** https://pursuit-web.onrender.com
 
-| Stage | What Pursuit does |
-| --- | --- |
-| **Intake** | Pulls opportunities from forwarded emails and scheduled scans of listing sites. |
-| **Eligibility** | Reads the fine print and returns *eligible*, *not eligible* or *unclear*, quoting the clause it relied on. |
-| **Ranking** | Scores effort vs reward and checks your calendar to pick the 3 worth your week. |
-| **Campaign runner** | Plans each application: found → verified → drafted → approved → sent → follow-up → recommendation. |
-| **Pre-submission referee** | Checks every draft against the requirements before it reaches you for approval. |
-| **Approval** | You approve, edit or skip each step in the web app or by replying in Gmail. |
+## The problem
 
-## Architecture
+Opportunities are scattered across posters, PDFs, group chats, emails and websites. The eligibility rules sit in the fine print, so students only find out they can't apply after reading the whole thing. And when they can apply, it takes weeks of drafting, follow ups and chasing recommendation letters. Most students either miss the good ones or spend time on ones they were never eligible for.
+
+## What Pursuit does
+
+A student fills in their profile once. Pursuit then:
+
+1. **Reads the opportunity.** Paste a link or the text, and n8n pulls out the title, organisation, deadline, reward, documents needed and every eligibility clause.
+2. **Shows its proof.** Each verdict (eligible, not eligible or unclear) quotes the exact clause it relied on. The quotes are checked against the source page, so the student can trust them or check them directly.
+3. **Picks the few worth the time.** The dashboard shows the top 3 for the week, a deadline calendar and what is closing soon.
+4. **Runs the application.** For each opportunity the student takes up, a campaign tracks every step: drafted, approved, sent, follow up due, recommendation requested.
+5. **Waits for approval.** Every draft goes to an approvals queue, where the student approves, edits or skips it. Nothing is sent without their yes.
+
+## What works today
+
+| Part                                                                                                             | Status                     |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Intake workflow on n8n Cloud (link or text in, Gemini extraction, quote verification)                            | Live                       |
+| "Check it" on the dashboard calling that workflow                                                                | Live                       |
+| Web app: login, onboarding, dashboard, opportunities, opportunity detail, campaigns, approvals, sources, profile | Built, on sample data      |
+| Supabase schema and seed (`db/`)                                                                                 | Written, not connected yet |
+| Matcher, ranker, campaign runner, notifier, Source Doctor, chat agent                                            | Planned for the hackathon  |
+
+On a real Chevening scholarship page, the intake workflow pulled out 14 eligibility clauses and all 14 matched the page word for word. A run takes about 9 seconds.
+
+The opportunities, sources and campaigns shown in the app are fictional sample data. Every organisation name, clause and date in `web/src/lib/data/seed.ts` is made up, and the UI marks it as sample data.
+
+## How it fits together
 
 ```
-            ┌──────────────────────────────┐
-  Gmail ───▶│          n8n cloud           │◀─── scheduled scans
- (forwards, │        (the brain)           │
-  approvals)│  intake · eligibility ·      │
-            │  ranking · campaign runner · │
-            │  pre-submission referee      │
-            └──────┬───────────────▲───────┘
-                   │ writes        │ webhooks (approve / edit / skip)
-                   ▼               │
-            ┌────────────┐   ┌─────┴──────────┐
-            │  Supabase  │──▶│  Next.js /web  │
-            │ (database) │   │  thin UI only  │
-            └────────────┘   └────────────────┘
+ Browser
+    │
+    ▼
+ Next.js app (Render)          pages + server actions, no agent logic
+    │  calls webhook
+    ▼
+ n8n Cloud                     all the agent work happens here
+    │  Intake: fetch page → clean text → Gemini extracts → verify quotes
+    ▼
+ Gemini Flash                  used only from inside n8n
 ```
 
-- **n8n cloud holds all agent logic.** Exported workflows are versioned in `/workflows`.
-- **`/web`** is a Next.js + TypeScript + Tailwind app that only reads data and calls n8n webhooks. It has no business logic.
-- **Supabase** stores opportunities, verdicts and campaign state. Schema goes in `/db` (coming soon; the UI uses local dummy data for now).
-- **Gmail** is the second channel for forwarding opportunities and approving steps.
+The web app never talks to Gemini directly. The Gemini key is stored as a credential in n8n, and the app only knows the n8n webhook URL, which is kept on the server and never sent to the browser.
+
+When Supabase is connected, n8n will write opportunities, matches and campaign state to it, and the web app will read from it.
+
+## Tech stack
+
+- **Web:** Next.js, TypeScript, Tailwind CSS
+- **Agent workflows:** n8n Cloud
+- **AI:** Google Gemini 2.5 Flash, called from n8n
+- **Database and auth:** Supabase (schema ready, app runs in mock mode for now)
+- **Hosting:** Render for the web app
 
 ## Repo layout
 
 ```
-/web        Next.js UI (dashboard + campaign timeline)
-/workflows  Exported n8n workflow JSON
-/db         Supabase schema.sql + seed.sql
+web/         Next.js app
+workflows/   n8n workflows exported as JSON
+db/          Supabase schema.sql and seed.sql
+render.yaml  Render deploy config
 ```
 
-## Running the UI
+## Run it locally
 
 ```bash
 cd web
 npm install
 npm run dev
-# open http://localhost:3000
 ```
 
-The app starts in **mock mode** by default, so no setup is needed. Sign in with any name and email. Data is fictional and kept in server memory, so it resets when the dev server restarts. Profile edits, save/skip, answering questions and approvals all work within the session.
+Open http://localhost:3000 and sign in with any name and email. The app starts in mock mode, so nothing else is needed. Sample data lives in server memory and resets when the server restarts.
 
-To change settings, copy `web/.env.example` to `web/.env.local`. If the n8n webhook URLs are empty, decisions are stored but not forwarded.
+To use the real intake workflow, copy `web/.env.example` to `web/.env.local` and set `N8N_INTAKE_WEBHOOK` to n8n production webhook URL. Without it, "Check it" will not reach n8n.
+
+### Import the n8n workflow
+
+1. In n8n, import `workflows/pursuit-intake.json`.
+2. Add a Google Gemini credential and select it on the Gemini Flash node.
+3. Set own webhook path on the Intake Webhook node (the export has a placeholder).
+4. Activate the workflow and copy its production URL into `web/.env.local`.
 
 ### Switch to Supabase
 
-1. Run `db/schema.sql`, then `db/seed.sql`, in the Supabase SQL editor.
-2. Set `NEXT_PUBLIC_DATA_MODE=supabase` along with the Supabase keys below.
-3. After signing up, give your account the sample data with `select public.seed_demo_for_user('<your auth user id>');`.
+1. Run `db/schema.sql` and then `db/seed.sql` in the Supabase SQL editor.
+2. Set `NEXT_PUBLIC_DATA_MODE=supabase`, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. In Supabase, set the Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` as a redirect URL.
+4. Sign up, then give the account the sample data with `select public.seed_demo_for_user('<user id>');`.
 
-### Set up Supabase auth (email + password, supabase mode)
+## Deploy
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. **Settings → API**: copy the Project URL and anon key into `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-3. **Authentication → URL Configuration**: set Site URL to `http://localhost:3000` and add the redirect URL `http://localhost:3000/auth/callback`.
-4. **Authentication → Providers → Email** is on by default. Turn off "Confirm email" if you want to skip the confirmation step while testing.
-5. Restart `npm run dev` and create an account at `/login`.
+The web app deploys to Render from `render.yaml`.
 
-**Google sign-in (later):**
-1. Create an OAuth client in Google Cloud with the redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`.
-2. Enable the Google provider in Supabase.
-3. Set `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=true`.
+1. On render.com, choose New → Blueprint and pick this repo.
+2. Enter `N8N_INTAKE_WEBHOOK` when Render asks for it. It is stored in Render, not in the repo.
+3. Deploy. Later pushes to `main` redeploy automatically.
 
-> The opportunity data in `web/src/lib/data/seed.ts` is **fictional sample data**. Every organisation, clause, prize and date is invented. The UI marks it with a "Sample data" chip.
-
-## Deploy to Render
-
-The web app (UI and its server-side API) deploys to Render from `render.yaml`. n8n stays on **n8n Cloud**, and the app calls its Intake webhook from the server.
-
-1. Push to `main` on GitHub.
-2. On [render.com](https://render.com): **New → Blueprint**, connect GitHub, pick this repo.
-3. When asked for `N8N_INTAKE_WEBHOOK`, paste the Intake workflow's production webhook URL. It's entered in Render, never committed.
-4. Apply. The first build takes a few minutes, and later pushes to `main` redeploy automatically.
-
-Free-plan notes:
-- The service sleeps after about 15 minutes idle, so the first visit takes 30–60s to wake.
-- Mock data lives in memory and resets on sleep or redeploy.
-- Anyone with the URL can sign in to the demo, so intake checks are capped at 10 per user per hour to protect the Gemini quota.
+On the free plan the app sleeps after about 15 minutes without visitors, so the first load can take up to a minute. Intake checks are limited to 10 per user per hour so a public demo can't use up the Gemini quota.
 
 ## Team
 
-| Name | Role | Contact |
-| --- | --- | --- |
-| _[Name]_ | _[Role, e.g. n8n workflows]_ | _[GitHub / email]_ |
-| _[Name]_ | _[Role, e.g. Web UI]_ | _[GitHub / email]_ |
-| _[Name]_ | _[Role, e.g. Data & Supabase]_ | _[GitHub / email]_ |
-| _[Name]_ | _[Role, e.g. Product & pitch]_ | _[GitHub / email]_ |
+We're two CSE students from UVCE, Bengaluru, and we built Pursuit because we kept missing deadlines for things we were eligible for.
+
+| Name           | GitHub                                             | Email                  |
+| -------------- | -------------------------------------------------- | ---------------------- |
+| Suraj Hulagur  | [@Suraj-Hulagur](https://github.com/Suraj-Hulagur) | hulagursuraj@gmail.com |
+| Rithya Jayaram | [@riti2043](https://github.com/riti2043)           | rithya2043@gmail.com   |
