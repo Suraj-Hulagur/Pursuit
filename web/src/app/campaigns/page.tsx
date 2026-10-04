@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { getCampaign, getCampaignIds, getOpportunity } from "@/lib/data";
+import { getData } from "@/lib/data";
 import { VerdictBadge } from "@/components/VerdictBadge";
 import { SampleChip } from "@/components/SampleChip";
 import { formatDeadline, typeLabel } from "@/components/format";
 
 export const dynamic = "force-dynamic";
 
-export default function CampaignsPage() {
-  const campaigns = getCampaignIds().flatMap((id) => {
-    const opp = getOpportunity(id);
-    const campaign = getCampaign(id);
-    return opp && campaign ? [{ opp, campaign }] : [];
-  });
+export default async function CampaignsPage() {
+  const db = await getData();
+  const campaigns = (await db.listCampaigns()).map(({ opportunity, campaign }) => ({
+    opp: opportunity,
+    campaign,
+  }));
 
   return (
     <div>

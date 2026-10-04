@@ -3,6 +3,8 @@ import type { Opportunity } from "@/lib/types";
 import { VerdictBadge } from "./VerdictBadge";
 import { EffortReward } from "./EffortReward";
 import { formatDeadline, typeLabel } from "./format";
+import { CardActions } from "./CardActions";
+import { Questions } from "./Questions";
 
 // The eligibility proof is the hero: verdict, the quoted clause, and what's
 // missing. Everything else is supporting detail.
@@ -14,7 +16,7 @@ export function OpportunityCard({
   hasCampaign: boolean;
 }) {
   const dl = formatDeadline(opp.deadline);
-  const muted = opp.verdict === "not_eligible";
+  const muted = opp.verdict === "not_eligible" || opp.status === "skipped";
 
   return (
     <article
@@ -65,6 +67,8 @@ export function OpportunityCard({
             {opp.reasoning}
           </p>
         </div>
+
+        <Questions opportunityId={opp.id} questions={opp.questions} />
       </div>
 
       <div className="border-t border-dashed border-rule p-5 sm:px-6">
@@ -79,6 +83,12 @@ export function OpportunityCard({
             {dl.label} ·{" "}
             <span className={dl.urgent ? "text-signal" : "text-ink-soft"}>{dl.left}</span>
           </span>
+        </div>
+        <p className="mt-3 font-mono text-[0.65rem] text-ink-soft">
+          Found {opp.foundAt} via {opp.source.name}
+        </p>
+        <div className="mt-3">
+          <CardActions id={opp.id} status={opp.status} />
         </div>
         {opp.fit && (
           <p className="mt-3 text-sm">

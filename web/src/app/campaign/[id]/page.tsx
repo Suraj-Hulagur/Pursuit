@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCampaign, getOpportunity } from "@/lib/data";
+import { getData } from "@/lib/data";
 import { Timeline } from "@/components/Timeline";
 import { VerdictBadge } from "@/components/VerdictBadge";
 import { EffortReward } from "@/components/EffortReward";
@@ -15,8 +15,8 @@ export default async function CampaignPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const opp = getOpportunity(id);
-  const campaign = getCampaign(id);
+  const db = await getData();
+  const [opp, campaign] = await Promise.all([db.getOpportunity(id), db.getCampaign(id)]);
   if (!opp || !campaign) notFound();
 
   const dl = formatDeadline(opp.deadline);

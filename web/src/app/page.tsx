@@ -1,5 +1,5 @@
 import { getUser } from "@/lib/auth";
-import { getCampaignIds, getOpportunities, getWeek } from "@/lib/data";
+import { getData } from "@/lib/data";
 import type { Verdict } from "@/lib/types";
 import { AddOpportunity } from "@/components/AddOpportunity";
 import { OpportunityCard } from "@/components/OpportunityCard";
@@ -15,23 +15,30 @@ const verdictOrder: Record<Verdict, number> = {
 };
 
 export default async function Dashboard() {
-  const user = await getUser();
-  const week = getWeek();
-  const opportunities = getOpportunities();
-  const campaignIds = new Set(getCampaignIds());
+  const db = await getData();
+  const [user, week, opportunities, campaigns, sources] = await Promise.all([
+    getUser(),
+    db.getWeek(),
+    db.listOpportunities(),
+    db.listCampaigns(),
+    db.listSources(),
+  ]);
+  const campaignIds = new Set(campaigns.map((c) => c.opportunity.id));
 
   // Ranking happens in n8n; we only sort by the rank it assigned.
-  const top = opportunities
+  const visible = opportunities.filter((o) => o.status !== "skipped");
+  const skipped = opportunities.filter((o) => o.status === "skipped");
+  const top = visible
     .filter((o) => o.rank !== null)
     .sort((a, b) => a.rank! - b.rank!);
-  const rest = opportunities
+  const rest = visible
     .filter((o) => o.rank === null)
     .sort(
       (a, b) =>
         verdictOrder[a.verdict] - verdictOrder[b.verdict] ||
         a.deadline.localeCompare(b.deadline),
     );
-  const counts = opportunities.reduce(
+  const counts = visible.reduce(
     (acc, o) => ({ ...acc, [o.verdict]: (acc[o.verdict] ?? 0) + 1 }),
     {} as Record<Verdict, number>,
   );
@@ -54,6 +61,9 @@ export default async function Dashboard() {
           </h1>
           <p className="mt-5 max-w-xl text-ink-soft">
             Every verdict quotes the exact clause it relied on, so you can check it yourself.
+          </p>
+          <p className="mt-3 font-mono text-[0.7rem] text-ink-soft">
+            Watching {sources.length} sources: {sources.map((s) => s.name).join(" · ")}
           </p>
         </div>
 
@@ -123,6 +133,23 @@ export default async function Dashboard() {
           ))}
         </ul>
       </section>
+
+      {skipped.length > 0 && (
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-baseline justify-between border-b border-rule pb-3">
+            <h2 className="font-display text-2xl text-ink-soft">Skipped ({skipped.length})</h2>
+            <span className="font-mono text-xs text-ink-soft group-open:hidden">Show</span>
+            <span className="hidden font-mono text-xs text-ink-soft group-open:inline">Hide</span>
+          </summary>
+          <ul className="mt-4 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {skipped.map((o) => (
+              <li key={o.id} className="opacity-70">
+                <OpportunityCard opp={o} hasCampaign={campaignIds.has(o.id)} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

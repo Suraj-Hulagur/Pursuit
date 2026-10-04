@@ -11,7 +11,11 @@ Pursuit is an opportunity campaign agent for students, pitched as **"your talent
 
 - **n8n cloud is the brain and holds ALL agent logic**: intake, eligibility, ranking, campaign runner, pre-submission referee. If something makes a decision, it lives in n8n.
 - **`/web` (Next.js) is a thin UI.** It only reads data and calls n8n webhooks. **No business logic in the web app**: no eligibility checks, no ranking, no deciding the next campaign step. It shows what n8n produced and passes the human's Approve / Edit / Skip on to n8n.
-- **Supabase** handles auth now and will be the database later. Until the tables exist, `/web` reads `web/src/data/opportunities.json` through `web/src/lib/data.ts`. Keep all reads behind that module so swapping in Supabase is a single-file change.
+- **Data layer:** every page and server action goes through `getData()` in `web/src/lib/data/`. It is one `DataStore` interface (`types.ts`) with two implementations, picked by `NEXT_PUBLIC_DATA_MODE`:
+  - `mock` (default, `mock.ts`): in-memory per-user state seeded from `seed.ts`. It resets when the dev server restarts.
+  - `supabase` (`supabase.ts`): the tables in `db/schema.sql`, scoped to the user by RLS.
+
+  Never read data any other way, so switching backends stays a single env change.
 - Card fields like `verdict`, `missing`, `campaignState`, `rank` and `fit` are **produced by n8n**. The UI displays them and never computes them.
 - **Gmail** is the second channel: students forward opportunities to it and approve steps by replying.
 - **No Telegram or WhatsApp.**
@@ -20,12 +24,14 @@ Pursuit is an opportunity campaign agent for students, pitched as **"your talent
 
 - `/web`: Next.js (App Router) + TypeScript + Tailwind v4 UI
 - `/workflows`: exported n8n workflow JSON (source of truth for agent logic lives in n8n cloud; export here to version it)
-- `/db`: Supabase schema and migrations (to come)
+- `/db`: `schema.sql` (tables + RLS) and `seed.sql` (fictional seed, generated from `web/src/lib/data/seed.ts`). Neither has been run yet.
 
 ## Web app notes
 
 - Next.js 16: route `params` is a Promise. See `web/AGENTS.md`, and check `web/node_modules/next/dist/docs/` before using unfamiliar APIs.
-- **Auth:** Supabase email + password through `@supabase/ssr`.
+- **Writes:** mutations are server actions in `web/src/app/actions.ts`. Each stores the user's decision through the data layer, forwards it to n8n, and revalidates.
+- **Mock auth:** in mock mode, `/login` accepts any name and email and stores them in the `pursuit_mock_user` cookie.
+- **Auth:** in supabase mode, Supabase email + password through `@supabase/ssr`.
   - Clients live in `web/src/lib/supabase/`, and `getUser()` is in `web/src/lib/auth.ts`.
   - `web/src/proxy.ts` (Next 16's rename of middleware) sends signed-out users to `/login`.
   - Google sign-in is built but hidden until `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=true`.

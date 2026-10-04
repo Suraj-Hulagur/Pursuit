@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useState, useTransition, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import type { Profile } from "@/lib/types";
+import { updateProfileAction } from "@/app/actions";
 
 const YEARS = ["1st year", "2nd year", "3rd year", "4th year", "5th year", "Postgraduate"];
 const DOCUMENTS = [
@@ -16,15 +18,25 @@ const DOCUMENTS = [
 const inputCls =
   "h-11 w-full rounded-sm border border-rule bg-paper px-3 text-base outline-none transition-colors focus:border-ink";
 
-export function ProfileForm({ name, email }: { name: string; email: string }) {
-  const [skills, setSkills] = useState<string[]>([]);
+export function ProfileForm({ profile }: { profile: Profile }) {
+  const [year, setYear] = useState(profile.year);
+  const [branch, setBranch] = useState(profile.branch);
+  const [location, setLocation] = useState(profile.location);
+  const [skills, setSkills] = useState<string[]>(profile.skills);
+  const [documents, setDocuments] = useState<string[]>(profile.documents);
   const [skillDraft, setSkillDraft] = useState("");
+  const [status, setStatus] = useState<{ text: string; error?: boolean } | null>(null);
+  const [pending, startTransition] = useTransition();
 
-  function addSkill() {
-    const parts = skillDraft
+  function pendingSkills() {
+    return skillDraft
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+  }
+
+  function addSkill() {
+    const parts = pendingSkills();
     if (parts.length) setSkills((prev) => [...new Set([...prev, ...parts])]);
     setSkillDraft("");
   }
@@ -36,22 +48,42 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
     }
   }
 
+  function toggleDoc(d: string) {
+    setDocuments((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
+    setStatus(null);
+  }
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const allSkills = [...new Set([...skills, ...pendingSkills()])];
+    setSkills(allSkills);
+    setSkillDraft("");
+    startTransition(async () => {
+      try {
+        const r = await updateProfileAction({ year, branch, location, skills: allSkills, documents });
+        setStatus({ text: r.message });
+      } catch {
+        setStatus({ text: "Couldn't save. Try again.", error: true });
+      }
+    });
+  }
+
   return (
-    <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
+    <form className="space-y-8" onSubmit={onSubmit} onChange={() => setStatus(null)}>
       <fieldset className="grid gap-5 sm:grid-cols-2">
         <legend className="eyebrow mb-3">Account</legend>
         <Field label="Name">
-          <input value={name} readOnly className={`${inputCls} text-ink-soft`} />
+          <input value={profile.name} readOnly className={`${inputCls} text-ink-soft`} />
         </Field>
         <Field label="Email">
-          <input value={email} readOnly className={`${inputCls} text-ink-soft`} />
+          <input value={profile.email} readOnly className={`${inputCls} text-ink-soft`} />
         </Field>
       </fieldset>
 
       <fieldset className="grid gap-5 sm:grid-cols-2">
         <legend className="eyebrow mb-3">Studies</legend>
         <Field label="Year">
-          <select defaultValue="" className={inputCls}>
+          <select value={year} onChange={(e) => setYear(e.target.value)} className={inputCls}>
             <option value="" disabled>
               Select…
             </option>
@@ -61,10 +93,20 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
           </select>
         </Field>
         <Field label="Branch / course">
-          <input placeholder="e.g. B.Tech Computer Science" className={inputCls} />
+          <input
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+            placeholder="e.g. B.Tech Computer Science"
+            className={inputCls}
+          />
         </Field>
         <Field label="Location (city, state)">
-          <input placeholder="e.g. Pune, Maharashtra" className={inputCls} />
+          <input
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="e.g. Pune, Maharashtra"
+            className={inputCls}
+          />
         </Field>
       </fieldset>
 
@@ -75,7 +117,10 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
             <button
               type="button"
               key={s}
-              onClick={() => setSkills((prev) => prev.filter((x) => x !== s))}
+              onClick={() => {
+                setSkills((prev) => prev.filter((x) => x !== s));
+                setStatus(null);
+              }}
               className="flex h-8 items-center gap-1.5 rounded-full bg-ink px-3 text-sm text-card hover:bg-signal"
               aria-label={`Remove ${s}`}
             >
@@ -102,7 +147,12 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
               key={d}
               className="flex min-h-11 cursor-pointer items-center gap-3 rounded-sm border border-rule bg-card px-3 has-[:checked]:border-ink"
             >
-              <input type="checkbox" className="h-4 w-4 accent-[var(--ink)]" />
+              <input
+                type="checkbox"
+                checked={documents.includes(d)}
+                onChange={() => toggleDoc(d)}
+                className="h-4 w-4 accent-[var(--ink)]"
+              />
               <span className="text-sm">{d}</span>
             </label>
           ))}
@@ -112,14 +162,19 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
       <div className="flex flex-wrap items-center gap-4 border-t border-rule pt-6">
         <button
           type="submit"
-          disabled
-          className="h-11 rounded-full bg-ink px-6 font-medium text-card opacity-40"
+          disabled={pending}
+          className="h-11 rounded-full bg-ink px-6 font-medium text-card transition-colors hover:bg-signal disabled:opacity-50"
         >
-          Save profile
+          {pending ? "Saving…" : "Save profile"}
         </button>
-        <p className="font-mono text-xs text-ink-soft">
-          Saving comes with Supabase tables.
-        </p>
+        {status && (
+          <p
+            role="status"
+            className={`font-mono text-xs ${status.error ? "text-signal" : "text-go"}`}
+          >
+            {status.text}
+          </p>
+        )}
       </div>
     </form>
   );

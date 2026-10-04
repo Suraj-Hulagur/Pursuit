@@ -1,5 +1,7 @@
 import { googleAuthEnabled, supabaseConfigured } from "@/lib/supabase/config";
+import { DATA_MODE } from "@/lib/data/mode";
 import { LoginForm } from "./LoginForm";
+import { MockLoginForm } from "./MockLoginForm";
 
 export default async function LoginPage({
   searchParams,
@@ -23,7 +25,9 @@ export default async function LoginPage({
         </p>
       </div>
 
-      {supabaseConfigured ? (
+      {DATA_MODE === "mock" ? (
+        <MockLoginForm />
+      ) : supabaseConfigured ? (
         <LoginForm
           googleEnabled={googleAuthEnabled}
           initialError={error === "auth" ? "That link didn't work. Try signing in again." : null}

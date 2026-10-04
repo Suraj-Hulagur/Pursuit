@@ -5,6 +5,7 @@ import {
   SUPABASE_URL,
   supabaseConfigured,
 } from "@/lib/supabase/config";
+import { DATA_MODE, MOCK_USER_COOKIE } from "@/lib/data/mode";
 
 const PUBLIC_PATHS = ["/login", "/auth"];
 
@@ -15,6 +16,14 @@ export async function proxy(request: NextRequest) {
   );
   const redirectTo = (path: string) =>
     NextResponse.redirect(new URL(path, request.url));
+
+  // Mock mode: signed in means the mock user cookie is present.
+  if (DATA_MODE === "mock") {
+    const signedIn = request.cookies.has(MOCK_USER_COOKIE);
+    if (!signedIn && !isPublic) return redirectTo("/login");
+    if (signedIn && pathname === "/login") return redirectTo("/");
+    return NextResponse.next();
+  }
 
   // Without Supabase keys nobody can sign in; /login explains the setup.
   if (!supabaseConfigured) {

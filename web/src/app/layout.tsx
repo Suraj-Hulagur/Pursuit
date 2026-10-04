@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { getUser } from "@/lib/auth";
-import { getPendingSteps } from "@/lib/data";
+import { getData } from "@/lib/data";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
 
@@ -31,6 +31,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getUser();
+  const pendingCount = user ? (await (await getData()).listPendingApprovals()).length : 0;
   return (
     <html
       lang="en"
@@ -47,7 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
             <Nav
               user={user && { name: user.name, email: user.email }}
-              pendingCount={user ? getPendingSteps().length : 0}
+              pendingCount={pendingCount}
             />
           </div>
         </header>

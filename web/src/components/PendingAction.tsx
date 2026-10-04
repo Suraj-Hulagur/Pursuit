@@ -1,44 +1,33 @@
 "use client";
 
-import { useState, type ButtonHTMLAttributes } from "react";
-import type { CampaignStep } from "@/lib/types";
-import { sendStepAction, type StepAction } from "@/lib/n8n";
-
-export interface Resolution {
-  action: StepAction;
-  draft?: string;
-  demo: boolean;
-}
+import { useState, useTransition, type ButtonHTMLAttributes } from "react";
+import type { CampaignStep, StepAction } from "@/lib/types";
+import { resolveStepAction } from "@/app/actions";
 
 // Approve / Edit / Skip for one pending step. Shared by the campaign timeline
-// and the approvals queue.
+// and the approvals queue. The server action stores the decision and tells
+// n8n; the page then re-renders from the data layer.
 export function PendingAction({
   opportunityId,
   step,
-  onResolved,
 }: {
   opportunityId: string;
   step: CampaignStep;
-  onResolved: (r: Resolution) => void;
 }) {
   const [text, setText] = useState(step.draft ?? "");
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
-  async function act(action: StepAction, draft?: string) {
-    setBusy(true);
+  function act(action: StepAction, draft?: string) {
     setError(null);
-    const res = await sendStepAction({
-      opportunityId,
-      stepKind: step.kind,
-      action,
-      draft,
-    }).catch(() => ({ ok: false, demo: false }));
-    setBusy(false);
-    if (!res.ok) return setError("Couldn't reach n8n. Nothing was sent.");
-    setEditing(false);
-    onResolved({ action, draft, demo: res.demo });
+    startTransition(async () => {
+      try {
+        await resolveStepAction(opportunityId, step.kind, action, draft);
+      } catch {
+        setError("Something went wrong. Nothing was changed.");
+      }
+    });
   }
 
   const hasDraft = step.draft !== undefined;
@@ -65,39 +54,40 @@ export function PendingAction({
       <div className="flex flex-wrap items-center gap-2 p-3">
         {editing ? (
           <>
-            <Btn primary disabled={busy} onClick={() => act("edit", text)}>
+            <Btn primary disabled={pending} onClick={() => act("edit", text)}>
               Save &amp; approve
             </Btn>
-            <Btn disabled={busy} onClick={() => setEditing(false)}>
+            <Btn
+              disabled={pending}
+              onClick={() => {
+                setText(step.draft ?? "");
+                setEditing(false);
+              }}
+            >
               Cancel
             </Btn>
           </>
         ) : (
           <>
-            <Btn primary disabled={busy} onClick={() => act("approve")}>
+            <Btn primary disabled={pending} onClick={() => act("approve")}>
               Approve
             </Btn>
             {hasDraft && (
-              <Btn disabled={busy} onClick={() => setEditing(true)}>
+              <Btn disabled={pending} onClick={() => setEditing(true)}>
                 Edit
               </Btn>
             )}
-            <Btn disabled={busy} onClick={() => act("skip")}>
+            <Btn disabled={pending} onClick={() => act("skip")}>
               Skip
             </Btn>
           </>
         )}
-        {busy && <span className="font-mono text-xs text-ink-soft">sending…</span>}
+        {pending && <span className="font-mono text-xs text-ink-soft">saving…</span>}
         {error && <span className="text-sm text-signal">{error}</span>}
       </div>
     </div>
   );
 }
-
-export const demoNotice =
-  "Demo mode: no n8n webhook configured, so this change only shows here.";
-export const sentNotice =
-  "Sent to n8n. The campaign runner will take it from here.";
 
 function Btn({
   primary,

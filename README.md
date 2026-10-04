@@ -43,7 +43,7 @@ Students miss the scholarships, internships, hackathons and grants they qualify 
 ```
 /web        Next.js UI (dashboard + campaign timeline)
 /workflows  Exported n8n workflow JSON
-/db         Supabase schema & migrations
+/db         Supabase schema.sql + seed.sql
 ```
 
 ## Running the UI
@@ -55,9 +55,17 @@ npm run dev
 # open http://localhost:3000
 ```
 
-Copy `web/.env.example` to `web/.env.local` and fill it in. If the n8n webhook URLs are empty, the app runs in demo mode.
+The app starts in **mock mode** by default, so no setup is needed. Sign in with any name and email. Data is fictional and kept in server memory, so it resets when the dev server restarts. Profile edits, save/skip, answering questions and approvals all work within the session.
 
-### Set up Supabase auth (email + password)
+To change settings, copy `web/.env.example` to `web/.env.local`. If the n8n webhook URLs are empty, decisions are stored but not forwarded.
+
+### Switch to Supabase
+
+1. Run `db/schema.sql`, then `db/seed.sql`, in the Supabase SQL editor.
+2. Set `NEXT_PUBLIC_DATA_MODE=supabase` along with the Supabase keys below.
+3. After signing up, give your account the sample data with `select public.seed_demo_for_user('<your auth user id>');`.
+
+### Set up Supabase auth (email + password, supabase mode)
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. **Settings → API**: copy the Project URL and anon key into `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
