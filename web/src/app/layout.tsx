@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
-import { getStudent } from "@/lib/data";
+import { getUser } from "@/lib/auth";
+import { getPendingSteps } from "@/lib/data";
+import { Nav } from "@/components/Nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,39 +29,33 @@ export const metadata: Metadata = {
     "Finds opportunities, proves eligibility, and runs your applications with your approval.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
-  const student = getStudent();
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const user = await getUser();
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col overflow-x-hidden">
         <header className="border-b border-ink">
-          <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-5 py-4">
-            <Link href="/" className="group flex items-baseline gap-2">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pt-4 md:py-4 sm:px-5">
+            <Link href="/" className="group flex items-baseline gap-2 py-1">
               <span className="font-display text-3xl leading-none tracking-tight">
                 Pursuit
               </span>
               <span className="h-2 w-2 rounded-full bg-signal transition-transform group-hover:scale-150" />
             </Link>
-            <div className="text-right">
-              <p className="eyebrow">Representing</p>
-              <p className="text-sm font-medium">
-                {student.name}
-                <span className="hidden text-ink-soft sm:inline">
-                  {" "}
-                  · {student.course}
-                </span>
-              </p>
-            </div>
+            <Nav
+              user={user && { name: user.name, email: user.email }}
+              pendingCount={user ? getPendingSteps().length : 0}
+            />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-5">
           {children}
         </main>
         <footer className="border-t border-rule">
-          <div className="mx-auto max-w-6xl px-5 py-5 eyebrow">
+          <div className="mx-auto max-w-6xl px-4 py-5 eyebrow sm:px-5">
             Nothing is sent without your approval
           </div>
         </footer>

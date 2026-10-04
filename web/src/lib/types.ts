@@ -14,10 +14,12 @@ export interface Opportunity {
   effortScore: number;
   clause: string;
   clauseSource: string;
+  missing: string[];
   reasoning: string;
   source: string;
   rank: number | null;
   fit: string | null;
+  campaignState: string | null;
 }
 
 export type StepKind =
@@ -42,15 +44,6 @@ export interface CampaignStep {
 
 export interface Campaign {
   steps: CampaignStep[];
-}
-
-export interface Student {
-  name: string;
-  course: string;
-  college: string;
-  cgpa: number;
-  familyIncome: string;
-  state: string;
 }
 
 export interface WeekDay {

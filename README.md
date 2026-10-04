@@ -55,15 +55,22 @@ npm run dev
 # open http://localhost:3000
 ```
 
-To send approvals to n8n, create `web/.env.local`:
+Copy `web/.env.example` to `web/.env.local` and fill it in. If the n8n webhook URLs are empty, the app runs in demo mode.
 
-```
-NEXT_PUBLIC_N8N_APPROVAL_WEBHOOK=https://<your-instance>.app.n8n.cloud/webhook/<id>
-```
+### Set up Supabase auth (email + password)
 
-Without it, the app runs in demo mode.
+1. Create a project at [supabase.com](https://supabase.com).
+2. **Settings → API**: copy the Project URL and anon key into `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. **Authentication → URL Configuration**: set Site URL to `http://localhost:3000` and add the redirect URL `http://localhost:3000/auth/callback`.
+4. **Authentication → Providers → Email** is on by default. Turn off "Confirm email" if you want to skip the confirmation step while testing.
+5. Restart `npm run dev` and create an account at `/login`.
 
-> The opportunity data in `web/src/data/opportunities.json` is illustrative. Program names are real, but clauses, dates and amounts are paraphrased, not official.
+**Google sign-in (later):**
+1. Create an OAuth client in Google Cloud with the redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. Enable the Google provider in Supabase.
+3. Set `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=true`.
+
+> The opportunity data in `web/src/data/opportunities.json` is **fictional sample data**. Every organisation, clause, prize and date is invented. The UI marks it with a "Sample data" chip.
 
 ## Team
 
