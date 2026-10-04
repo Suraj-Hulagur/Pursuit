@@ -30,7 +30,7 @@ export function ConfidenceDot({ value, showValue = false }: { value: number; sho
 }
 
 export function SourceStatusDot({ status, withLabel = false }: { status: SourceStatus; withLabel?: boolean }) {
-  const m = sourceStatusMeta[status];
+  const m = sourceStatusMeta[status] ?? sourceStatusMeta.healthy;
   return (
     <span className={`inline-flex items-center gap-1.5 ${withLabel ? m.text : ""}`}>
       <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${m.dot}`} />

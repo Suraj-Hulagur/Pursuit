@@ -7,6 +7,7 @@ import type {
   ClarifyingQuestion,
   Opportunity,
   Source,
+  SourceStatus,
 } from "@/lib/types";
 import type { DataStore } from "./types";
 import { SEED_SOURCES } from "./seed";
@@ -48,16 +49,17 @@ function stamp(ts: string): string {
 
 function toSource(r: Row | null, enabled: Map<string, boolean>): Source {
   if (!r) {
-    return { id: "unknown", name: "Unknown source", kind: "manual", url: null, status: "broken", lastChecked: "—", isPublic: false, enabled: false };
+    return { id: "unknown", name: "Unknown source", kind: "manual", url: null, status: "healthy", lastChecked: "—", isPublic: false, enabled: false };
   }
   const isPublic = r.owner_id === null;
+  const status: SourceStatus = (r.status === "healthy" || r.status === "repairing" || r.status === "broken") ? r.status : "healthy";
   return {
-    id: r.id,
-    name: r.name,
-    kind: r.kind,
-    url: r.url,
-    status: r.status,
-    lastChecked: r.retest_requested_at ? "Retest queued" : ago(r.last_checked_at),
+    id: String(r.id),
+    name: String(r.name ?? "Unnamed source"),
+    kind: r.kind ?? "web",
+    url: r.url ?? null,
+    status,
+    lastChecked: r.last_checked_at ? ago(r.last_checked_at) : (r.retest_requested_at ? "Retest queued" : "Just now"),
     isPublic,
     enabled: isPublic ? (enabled.get(r.id) ?? true) : true,
   };
@@ -77,8 +79,14 @@ function toStep(e: Row, awaitingN8n: boolean): CampaignStep {
 
 export function createSupabaseStore(supabase: SupabaseClient, userId: string): DataStore {
   async function subscriptions(): Promise<Map<string, boolean>> {
-    const rows = check(await supabase.from("source_subscriptions").select("source_id, enabled")) as Row[];
-    return new Map(rows.map((r) => [r.source_id, r.enabled]));
+    try {
+      const res = await supabase.from("source_subscriptions").select("source_id, enabled");
+      if (res.error) return new Map();
+      const rows = res.data ?? [];
+      return new Map(rows.map((r: any) => [r.source_id, r.enabled]));
+    } catch {
+      return new Map();
+    }
   }
 
   async function profileDocuments(): Promise<string[]> {
@@ -181,18 +189,23 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
     },
 
     async listSources() {
-      const [rows, subs] = await Promise.all([
-        supabase.from("sources").select("*").order("name").then((r) => check(r) as Row[]),
-        subscriptions(),
-      ]);
-      const dbSources = rows.map((r) => toSource(r, subs));
-      const defaultPublic = SEED_SOURCES.filter((s) => s.isPublic).map((s) => ({
-        ...s,
-        enabled: subs.get(s.id) ?? s.enabled,
-      }));
-      const existingIds = new Set(dbSources.map((s) => s.id));
-      const missingPublic = defaultPublic.filter((s) => !existingIds.has(s.id));
-      return [...dbSources, ...missingPublic];
+      try {
+        const [rowsRes, subs] = await Promise.all([
+          supabase.from("sources").select("*").order("name"),
+          subscriptions(),
+        ]);
+        const rows = (rowsRes.data ?? []) as Row[];
+        const dbSources = rows.map((r) => toSource(r, subs));
+        const defaultPublic = SEED_SOURCES.filter((s) => s.isPublic).map((s) => ({
+          ...s,
+          enabled: subs.get(s.id) ?? s.enabled,
+        }));
+        const existingIds = new Set(dbSources.map((s) => s.id));
+        const missingPublic = defaultPublic.filter((s) => !existingIds.has(s.id));
+        return [...dbSources, ...missingPublic];
+      } catch {
+        return SEED_SOURCES;
+      }
     },
     async setSourceEnabled(id, enabled) {
       check(
