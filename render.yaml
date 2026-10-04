@@ -1,0 +1,24 @@
+# Render Blueprint: deploys the Next.js app in /web as one web service.
+# n8n stays on n8n Cloud; the app calls its Intake webhook from the server.
+# Secrets are never committed: N8N_INTAKE_WEBHOOK is entered in the Render
+# dashboard when the Blueprint is applied (sync: false).
+services:
+  - type: web
+    name: pursuit-web
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /login
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Inlined at build time, so it must be set here rather than at runtime.
+      - key: NEXT_PUBLIC_DATA_MODE
+        value: mock
+      # n8n "Pursuit · Intake" production webhook URL (server-only).
+      - key: N8N_INTAKE_WEBHOOK
+        sync: false

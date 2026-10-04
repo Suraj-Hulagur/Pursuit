@@ -19,6 +19,7 @@ export async function mockSignIn(
   (await cookies()).set(MOCK_USER_COOKIE, encodeMockUser(name, email), {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });

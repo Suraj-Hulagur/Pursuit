@@ -43,3 +43,7 @@ Pursuit is an opportunity campaign agent for students, pitched as **"your talent
 - **Sample data is fictional.** Never invent people, and never attach made-up rules, prizes or dates to real organisations. Use real public details or clearly fictional names. Show the signed-in user's real name, never a persona.
 - Design tokens (paper, ink, signal, verdict colours) live in `web/src/app/globals.css`.
 - Run: `cd web && npm run dev` → http://localhost:3000
+- **Deploy:** the web app deploys to Render via `render.yaml` (free plan, `rootDir: web`).
+  - `N8N_INTAKE_WEBHOOK` is set in the Render dashboard (`sync: false`).
+  - n8n stays on n8n Cloud. Never commit secrets or webhook URLs.
+  - `NEXT_PUBLIC_*` vars are inlined at build time, so set them in `render.yaml` or before a build.

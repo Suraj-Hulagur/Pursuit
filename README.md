@@ -78,7 +78,21 @@ To change settings, copy `web/.env.example` to `web/.env.local`. If the n8n webh
 2. Enable the Google provider in Supabase.
 3. Set `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=true`.
 
-> The opportunity data in `web/src/data/opportunities.json` is **fictional sample data**. Every organisation, clause, prize and date is invented. The UI marks it with a "Sample data" chip.
+> The opportunity data in `web/src/lib/data/seed.ts` is **fictional sample data**. Every organisation, clause, prize and date is invented. The UI marks it with a "Sample data" chip.
+
+## Deploy to Render
+
+The web app (UI and its server-side API) deploys to Render from `render.yaml`. n8n stays on **n8n Cloud**, and the app calls its Intake webhook from the server.
+
+1. Push to `main` on GitHub.
+2. On [render.com](https://render.com): **New → Blueprint**, connect GitHub, pick this repo.
+3. When asked for `N8N_INTAKE_WEBHOOK`, paste the Intake workflow's production webhook URL. It's entered in Render, never committed.
+4. Apply. The first build takes a few minutes, and later pushes to `main` redeploy automatically.
+
+Free-plan notes:
+- The service sleeps after about 15 minutes idle, so the first visit takes 30–60s to wake.
+- Mock data lives in memory and resets on sleep or redeploy.
+- Anyone with the URL can sign in to the demo, so intake checks are capped at 10 per user per hour to protect the Gemini quota.
 
 ## Team
 

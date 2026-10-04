@@ -156,10 +156,29 @@ export async function retestSourceAction(id: string) {
 
 // ---------------------------------------------------------------- intake
 
+// The public demo has open sign-in, so cap intake calls per user to protect the
+// Gemini quota behind n8n. In-memory is fine for a single instance.
+const INTAKE_LIMIT = 10;
+const INTAKE_WINDOW_MS = 60 * 60 * 1000;
+const intakeLog = ((globalThis as unknown as { __pursuitIntakeLog?: Map<string, number[]> })
+  .__pursuitIntakeLog ??= new Map<string, number[]>());
+
+function takeIntakeSlot(userKey: string): number | null {
+  const now = Date.now();
+  const recent = (intakeLog.get(userKey) ?? []).filter((t) => now - t < INTAKE_WINDOW_MS);
+  if (recent.length >= INTAKE_LIMIT) {
+    intakeLog.set(userKey, recent);
+    return Math.ceil((recent[0] + INTAKE_WINDOW_MS - now) / 60_000);
+  }
+  intakeLog.set(userKey, [...recent, now]);
+  return null;
+}
+
 // Sends a link or pasted text to the n8n Intake workflow and returns what it
 // extracted. Nothing is saved yet; the dashboard just shows the result.
 export async function checkOpportunityAction(input: string): Promise<IntakeResult> {
   await getData(); // signed-in users only
+  const user = await getUser();
   const value = input.trim();
   if (!value) return { ok: false, executionId: null, error: "Paste a link or some text first." };
   if (value.length > 40_000) return { ok: false, executionId: null, error: "That's too long. Paste under 40,000 characters." };
@@ -172,6 +191,14 @@ export async function checkOpportunityAction(input: string): Promise<IntakeResul
   }
   if (url && url.protocol !== "http:" && url.protocol !== "https:") {
     return { ok: false, executionId: null, error: "Only http and https links can be checked." };
+  }
+  const waitMinutes = takeIntakeSlot(user?.email.toLowerCase() ?? "anonymous");
+  if (waitMinutes !== null) {
+    return {
+      ok: false,
+      executionId: null,
+      error: `You've checked ${INTAKE_LIMIT} opportunities this hour. Try again in about ${waitMinutes} min.`,
+    };
   }
   return runIntake(url ? { url: url.toString() } : { text: value });
 }
