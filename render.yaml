@@ -18,7 +18,11 @@ services:
         value: "22"
       # Inlined at build time, so it must be set here rather than at runtime.
       - key: NEXT_PUBLIC_DATA_MODE
-        value: mock
+        value: supabase
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
       # n8n "Pursuit · Intake" production webhook URL (server-only).
       - key: N8N_INTAKE_WEBHOOK
         sync: false
