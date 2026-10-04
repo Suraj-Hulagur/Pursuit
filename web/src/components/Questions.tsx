@@ -40,7 +40,7 @@ function QuestionRow({ opportunityId, q }: { opportunityId: string; q: Clarifyin
         <p className="mt-0.5 font-medium">
           <span className="text-go">✓</span> {q.answer}
         </p>
-        <p className="mt-0.5 font-mono text-[0.65rem] text-ink-soft">
+        <p className="mt-0.5 font-mono text-[0.72rem] text-ink-soft">
           {note ?? "Answered. Pursuit will re-check this verdict."}
         </p>
       </div>
@@ -69,12 +69,12 @@ function QuestionRow({ opportunityId, q }: { opportunityId: string; q: Clarifyin
         />
         <button
           disabled={pending || !value.trim()}
-          className="h-10 shrink-0 rounded-full bg-ink px-4 text-sm font-medium text-card transition-colors hover:bg-signal disabled:opacity-40"
+          className="h-10 shrink-0 rounded-full bg-ink px-4 text-sm font-medium text-card transition-colors hover:bg-signal-ink disabled:opacity-40"
         >
           {pending ? "…" : "Answer"}
         </button>
       </div>
-      {note && <p className="mt-1 font-mono text-[0.65rem] text-signal">{note}</p>}
+      {note && <p className="mt-1 font-mono text-[0.72rem] text-signal-ink">{note}</p>}
     </form>
   );
 }

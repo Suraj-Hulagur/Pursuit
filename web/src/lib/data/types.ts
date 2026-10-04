@@ -1,5 +1,7 @@
 import type {
+  Activity,
   Campaign,
+  CampaignStep,
   MatchStatus,
   Opportunity,
   Profile,
@@ -7,8 +9,6 @@ import type {
   Source,
   StepAction,
   StepKind,
-  CampaignStep,
-  Week,
 } from "@/lib/types";
 
 export interface CampaignSummary {
@@ -26,12 +26,20 @@ export interface PendingItem {
 export interface DataStore {
   getProfile(): Promise<Profile>;
   updateProfile(input: ProfileInput): Promise<void>;
+  completeOnboarding(input: ProfileInput): Promise<void>;
 
   listSources(): Promise<Source[]>;
+  setSourceEnabled(id: string, enabled: boolean): Promise<void>;
+  addSource(url: string): Promise<void>;
+  deleteSource(id: string): Promise<void>;
+  retestSource(id: string): Promise<void>;
+
   listOpportunities(): Promise<Opportunity[]>;
   getOpportunity(id: string): Promise<Opportunity | null>;
   setOpportunityStatus(id: string, status: MatchStatus): Promise<void>;
   answerQuestion(opportunityId: string, questionId: string, answer: string): Promise<void>;
+  recordView(opportunityId: string): Promise<void>;
+  listRecentlyViewed(limit: number): Promise<Opportunity[]>;
 
   listCampaigns(): Promise<CampaignSummary[]>;
   getCampaign(opportunityId: string): Promise<Campaign | null>;
@@ -43,5 +51,5 @@ export interface DataStore {
     draft?: string,
   ): Promise<void>;
 
-  getWeek(): Promise<Week>;
+  listActivity(limit: number): Promise<Activity[]>;
 }

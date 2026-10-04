@@ -83,7 +83,7 @@ export function PendingAction({
           </>
         )}
         {pending && <span className="font-mono text-xs text-ink-soft">saving…</span>}
-        {error && <span className="text-sm text-signal">{error}</span>}
+        {error && <span className="text-sm text-urgent">{error}</span>}
       </div>
     </div>
   );
@@ -99,7 +99,7 @@ function Btn({
       {...props}
       className={`h-10 rounded-full border px-4 text-sm font-medium transition-colors disabled:opacity-50 ${
         primary
-          ? "border-ink bg-ink text-card hover:border-signal hover:bg-signal"
+          ? "border-ink bg-ink text-card hover:border-signal-ink hover:bg-signal-ink"
           : "border-ink hover:bg-paper-deep"
       }`}
     >

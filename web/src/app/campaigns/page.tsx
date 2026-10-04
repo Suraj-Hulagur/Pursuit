@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getData } from "@/lib/data";
 import { VerdictBadge } from "@/components/VerdictBadge";
 import { SampleChip } from "@/components/SampleChip";
-import { formatDeadline, typeLabel } from "@/components/format";
+import { formatDeadline } from "@/components/format";
+import { CategoryBadge } from "@/components/Badges";
 
 export const dynamic = "force-dynamic";
 
@@ -41,13 +42,15 @@ export default async function CampaignsPage() {
                     <VerdictBadge verdict={opp.verdict} />
                     <span className="font-mono text-xs">
                       {dl.label} ·{" "}
-                      <span className={dl.urgent ? "text-signal" : "text-ink-soft"}>
+                      <span className={dl.urgent ? "font-semibold text-urgent" : "text-ink-soft"}>
                         {dl.left}
                       </span>
                     </span>
                   </div>
-                  <p className="eyebrow mt-5">{typeLabel[opp.type]}</p>
-                  <h2 className="mt-1 text-lg font-medium leading-snug group-hover:text-signal">
+                  <div className="mt-5">
+                    <CategoryBadge category={opp.category} />
+                  </div>
+                  <h2 className="mt-1 text-lg font-medium leading-snug group-hover:text-signal-ink">
                     {opp.title}
                   </h2>
                   {opp.campaignState && (

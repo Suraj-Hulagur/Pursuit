@@ -34,7 +34,7 @@ export default async function LoginPage({
         />
       ) : (
         <div className="rounded-sm border border-ink bg-card p-6 shadow-[4px_4px_0_0_var(--ink)]">
-          <p className="eyebrow mb-2 !text-signal">Setup needed</p>
+          <p className="eyebrow mb-2 !text-signal-ink">Setup needed</p>
           <h2 className="font-display text-2xl">Supabase isn&apos;t connected yet</h2>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-ink-soft">
             <li>

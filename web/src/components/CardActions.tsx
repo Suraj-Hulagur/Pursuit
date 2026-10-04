@@ -25,7 +25,7 @@ export function CardActions({ id, status }: { id: string; status: MatchStatus })
         disabled={pending}
         onClick={() => set(status === "saved" ? "new" : "saved")}
         aria-pressed={status === "saved"}
-        className={`${base} ${status === "saved" ? "border-ink bg-ink text-card hover:bg-signal hover:border-signal" : "border-ink hover:bg-paper-deep"}`}
+        className={`${base} ${status === "saved" ? "border-ink bg-ink text-card hover:bg-signal-ink hover:border-signal" : "border-ink hover:bg-paper-deep"}`}
       >
         {status === "saved" ? "★ Saved" : "☆ Save"}
       </button>

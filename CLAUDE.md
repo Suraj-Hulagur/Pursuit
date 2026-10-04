@@ -28,6 +28,10 @@ Pursuit is an opportunity campaign agent for students, pitched as **"your talent
 
 ## Web app notes
 
+- **Routes:**
+  - `/` sends signed-in users to `/onboarding` (first time) or `/dashboard`.
+  - Main pages: `/opportunities`, `/opportunity/[id]`, `/campaigns`, `/campaign/[id]`, `/approvals`, `/sources`, `/profile`.
+- **Category colours** (scholarship blue, hackathon orange, internship green, event purple) and contrast-checked text tokens live in `globals.css`. Use `text-signal-ink`, not `text-signal`, for small text.
 - Next.js 16: route `params` is a Promise. See `web/AGENTS.md`, and check `web/node_modules/next/dist/docs/` before using unfamiliar APIs.
 - **Writes:** mutations are server actions in `web/src/app/actions.ts`. Each stores the user's decision through the data layer, forwards it to n8n, and revalidates.
 - **Mock auth:** in mock mode, `/login` accepts any name and email and stores them in the `pursuit_mock_user` cookie.

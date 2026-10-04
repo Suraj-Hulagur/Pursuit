@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getData } from "@/lib/data";
 import { getUser } from "@/lib/auth";
 import { forwardDecision } from "@/lib/n8n";
 import type { MatchStatus, ProfileInput, StepAction, StepKind } from "@/lib/types";
 
 // Thin wrappers: store the user's decision through the data layer, tell n8n,
-// refresh the UI. No eligibility or campaign logic lives here.
+// refresh the UI. No eligibility, ranking or campaign logic lives here.
 
 export interface ActionResult {
   ok: boolean;
@@ -22,6 +23,30 @@ const noteFor = (r: { ok: boolean; demo: boolean }) =>
     : r.demo
       ? "Saved. Demo mode: no n8n webhook configured."
       : "Saved and sent to n8n.";
+
+function cleanProfile(input: ProfileInput): ProfileInput {
+  const tags = (xs?: string[]) =>
+    xs === undefined ? undefined : [...new Set(xs.map((s) => s.trim()).filter(Boolean))];
+  const text = (v?: string) => (v === undefined ? undefined : v.trim());
+  const out: ProfileInput = {
+    name: text(input.name),
+    location: text(input.location),
+    citizenship: text(input.citizenship),
+    level: text(input.level),
+    field: text(input.field),
+    college: text(input.college),
+    gpa: text(input.gpa),
+    skills: tags(input.skills),
+    interests: tags(input.interests),
+    documents: input.documents === undefined ? undefined : [...new Set(input.documents)],
+    notifyDigest: input.notifyDigest,
+    notifyReminders: input.notifyReminders,
+  };
+  // Only send fields the caller provided, so partial updates don't blank others.
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined)) as ProfileInput;
+}
+
+// ---------------------------------------------------------------- campaigns
 
 export async function resolveStepAction(
   opportunityId: string,
@@ -43,6 +68,8 @@ export async function resolveStepAction(
   refresh();
   return { ok: true, message: noteFor(r) };
 }
+
+// ---------------------------------------------------------------- opportunities
 
 export async function answerQuestionAction(
   opportunityId: string,
@@ -71,16 +98,58 @@ export async function setStatusAction(opportunityId: string, status: MatchStatus
   refresh();
 }
 
+// ---------------------------------------------------------------- profile
+
 export async function updateProfileAction(input: ProfileInput): Promise<ActionResult> {
-  const clean: ProfileInput = {
-    year: input.year.trim(),
-    branch: input.branch.trim(),
-    location: input.location.trim(),
-    skills: [...new Set(input.skills.map((s) => s.trim()).filter(Boolean))],
-    documents: [...new Set(input.documents)],
-  };
+  const clean = cleanProfile(input);
+  if (clean.name !== undefined && !clean.name) return { ok: false, message: "Name can't be empty." };
   const db = await getData();
   await db.updateProfile(clean);
   refresh();
   return { ok: true, message: "Profile saved." };
+}
+
+export async function completeOnboardingAction(input: ProfileInput): Promise<ActionResult> {
+  const clean = cleanProfile(input);
+  if (!clean.name) return { ok: false, message: "Enter your name." };
+  const db = await getData();
+  await db.completeOnboarding(clean);
+  refresh();
+  redirect("/opportunities");
+}
+
+// ---------------------------------------------------------------- sources
+
+export async function setSourceEnabledAction(id: string, enabled: boolean) {
+  const db = await getData();
+  await db.setSourceEnabled(id, enabled);
+  refresh();
+}
+
+export async function addSourceAction(url: string): Promise<ActionResult> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch {
+    return { ok: false, message: "That doesn't look like a URL. Include https://" };
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return { ok: false, message: "Only http and https links can be added." };
+  }
+  const db = await getData();
+  await db.addSource(parsed.toString());
+  refresh();
+  return { ok: true, message: "Added. Pursuit will run the first scan shortly." };
+}
+
+export async function deleteSourceAction(id: string) {
+  const db = await getData();
+  await db.deleteSource(id);
+  refresh();
+}
+
+export async function retestSourceAction(id: string) {
+  const db = await getData();
+  await db.retestSource(id);
+  refresh();
 }

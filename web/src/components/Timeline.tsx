@@ -39,16 +39,16 @@ export function Timeline({
               className={`relative z-10 mt-1.5 h-4 w-4 justify-self-center rounded-full border-2 ${dot[s.status]}`}
             />
             <div
-              className={`min-w-0 ${s.status === "upcoming" || s.status === "skipped" ? "opacity-60" : ""}`}
+              className="min-w-0"
             >
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h3
-                  className={`text-lg font-medium ${s.status === "skipped" ? "line-through" : ""}`}
+                  className={`text-lg font-medium ${s.status === "skipped" ? "text-ink-soft line-through" : s.status === "upcoming" ? "text-ink-soft" : ""}`}
                 >
                   {s.title}
                 </h3>
                 <span
-                  className={`font-mono text-[0.7rem] uppercase tracking-wider ${s.status === "pending" ? "text-signal" : "text-ink-soft"}`}
+                  className={`font-mono text-[0.7rem] uppercase tracking-wider ${s.status === "pending" ? "font-semibold text-signal-ink" : "text-ink-soft"}`}
                 >
                   {statusLabel[s.status]} · {s.at}
                 </span>

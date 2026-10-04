@@ -32,7 +32,7 @@ export default async function ApprovalsPage() {
                 {String(n + 1).padStart(2, "0")}
               </span>
               <div className="min-w-0">
-                <Link href={`/campaign/${opportunity.id}`} className="eyebrow hover:!text-signal">
+                <Link href={`/campaign/${opportunity.id}`} className="eyebrow hover:!text-signal-ink">
                   {opportunity.title} →
                 </Link>
                 <h2 className="mt-1 text-xl font-medium">{step.title}</h2>

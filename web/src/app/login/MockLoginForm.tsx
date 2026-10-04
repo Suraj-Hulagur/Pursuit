@@ -13,7 +13,7 @@ export function MockLoginForm() {
     <div className="rounded-sm border border-ink bg-card shadow-[4px_4px_0_0_var(--ink)]">
       <div className="flex items-center justify-between border-b border-ink px-6 py-3">
         <span className="text-sm font-medium">Sign in</span>
-        <span className="rounded-full border border-dashed border-ink-soft px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-ink-soft">
+        <span className="rounded-full border border-dashed border-ink-soft px-2 py-0.5 font-mono text-[0.72rem] uppercase tracking-wider text-ink-soft">
           Mock mode
         </span>
       </div>
@@ -27,14 +27,14 @@ export function MockLoginForm() {
           <input name="email" type="email" required autoComplete="email" className={inputCls} />
         </label>
         {error && (
-          <p role="alert" className="text-sm text-signal">
+          <p role="alert" className="text-sm text-urgent">
             {error}
           </p>
         )}
         <button
           type="submit"
           disabled={pending}
-          className="h-11 w-full rounded-full bg-ink font-medium text-card transition-colors hover:bg-signal disabled:opacity-50"
+          className="h-11 w-full rounded-full bg-ink font-medium text-card transition-colors hover:bg-signal-ink disabled:opacity-50"
         >
           {pending ? "One moment…" : "Continue"}
         </button>

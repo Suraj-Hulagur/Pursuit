@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  Activity,
   Campaign,
   CampaignStep,
   ClarifyingQuestion,
@@ -8,49 +9,55 @@ import type {
   Source,
 } from "@/lib/types";
 import type { DataStore } from "./types";
-import { SEED_WEEK } from "./seed";
 
 // Reads and writes the tables in db/schema.sql as the signed-in user.
 // RLS limits every query to that user's rows. Writes are limited to what the
-// user decides; n8n (service role) owns verdicts and campaign progress.
+// user decides; n8n (service role) owns verdicts, campaign progress, source
+// health and the activity feed.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 
 const MATCH_SELECT =
-  "verdict, clause, clause_source, missing, reasoning, rank, fit, status, questions, found_at," +
-  " opportunity:opportunities(*, source:sources(*))";
+  "verdict, confidence, confidence_breakdown, clause, clause_source, criteria, reasoning, rank," +
+  " is_new, status, questions, found_at, opportunity:opportunities(*, source:sources(*))";
 
-function toSource(r: Row | null): Source {
-  return r
-    ? { id: r.id, name: r.name, kind: r.kind, url: r.url }
-    : { id: "unknown", name: "Unknown source", kind: "manual", url: null };
+function check<T>(res: { data: T; error: { message: string } | null }): T {
+  if (res.error) throw new Error(`Supabase: ${res.error.message}`);
+  return res.data;
 }
 
-function toOpportunity(m: Row, campaignState: string | null): Opportunity {
-  const o = m.opportunity;
+function ago(ts: string | null): string {
+  if (!ts) return "Never";
+  const mins = Math.round((Date.now() - new Date(ts).getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)} h ago`;
+  return new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+function stamp(ts: string): string {
+  const d = new Date(ts);
+  const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
+  const day = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+  const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+  return `${day === today ? "Today" : day} ${time}`;
+}
+
+function toSource(r: Row | null, enabled: Map<string, boolean>): Source {
+  if (!r) {
+    return { id: "unknown", name: "Unknown source", kind: "manual", url: null, status: "broken", lastChecked: "—", isPublic: false, enabled: false };
+  }
+  const isPublic = r.owner_id === null;
   return {
-    id: o.id,
-    title: o.title,
-    org: o.org,
-    type: o.type,
-    deadline: o.deadline,
-    reward: o.reward,
-    rewardScore: o.reward_score,
-    effortHours: o.effort_hours,
-    effortScore: o.effort_score,
-    source: toSource(o.source),
-    foundAt: new Date(m.found_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-    verdict: m.verdict,
-    clause: m.clause,
-    clauseSource: m.clause_source,
-    missing: m.missing ?? [],
-    reasoning: m.reasoning,
-    rank: m.rank,
-    fit: m.fit,
-    campaignState,
-    status: m.status,
-    questions: (m.questions ?? []) as ClarifyingQuestion[],
+    id: r.id,
+    name: r.name,
+    kind: r.kind,
+    url: r.url,
+    status: r.status,
+    lastChecked: r.retest_requested_at ? "Retest queued" : ago(r.last_checked_at),
+    isPublic,
+    enabled: isPublic ? (enabled.get(r.id) ?? true) : true,
   };
 }
 
@@ -66,12 +73,17 @@ function toStep(e: Row, awaitingN8n: boolean): CampaignStep {
   };
 }
 
-function check<T>(res: { data: T; error: { message: string } | null }): T {
-  if (res.error) throw new Error(`Supabase: ${res.error.message}`);
-  return res.data;
-}
-
 export function createSupabaseStore(supabase: SupabaseClient, userId: string): DataStore {
+  async function subscriptions(): Promise<Map<string, boolean>> {
+    const rows = check(await supabase.from("source_subscriptions").select("source_id, enabled")) as Row[];
+    return new Map(rows.map((r) => [r.source_id, r.enabled]));
+  }
+
+  async function profileDocuments(): Promise<string[]> {
+    const p = check(await supabase.from("profiles").select("documents").eq("id", userId).single()) as Row;
+    return p.documents ?? [];
+  }
+
   async function campaignStates(): Promise<Map<string, string | null>> {
     const rows = check(await supabase.from("campaigns").select("opportunity_id, state_label")) as Row[];
     return new Map(rows.map((r) => [r.opportunity_id, r.state_label]));
@@ -84,13 +96,48 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
     return new Set(rows.map((r) => r.campaign_event_id));
   }
 
+  async function context() {
+    const [subs, docs, states] = await Promise.all([subscriptions(), profileDocuments(), campaignStates()]);
+    return { subs, docs, states };
+  }
+
+  function toOpportunity(m: Row, ctx: Awaited<ReturnType<typeof context>>): Opportunity {
+    const o = m.opportunity;
+    return {
+      id: o.id,
+      title: o.title,
+      org: o.org,
+      category: o.category,
+      deadline: o.deadline,
+      url: o.url,
+      reward: o.reward,
+      terms: o.terms ?? [],
+      effortHours: o.effort_hours,
+      source: toSource(o.source, ctx.subs),
+      foundAt: new Date(m.found_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+      isNew: m.is_new,
+      verdict: m.verdict,
+      confidence: m.confidence,
+      confidenceBreakdown: m.confidence_breakdown ?? [],
+      clause: m.clause,
+      clauseSource: m.clause_source,
+      criteria: m.criteria ?? [],
+      documents: (o.required_documents ?? []).map((name: string) => ({
+        name,
+        onHand: ctx.docs.includes(name),
+      })),
+      reasoning: m.reasoning,
+      rank: m.rank,
+      campaignState: ctx.states.get(o.id) ?? null,
+      status: m.status,
+      questions: (m.questions ?? []) as ClarifyingQuestion[],
+    };
+  }
+
   async function loadCampaign(opportunityId: string): Promise<Campaign | null> {
-    const res = await supabase
-      .from("campaigns")
-      .select("id, campaign_events(*)")
-      .eq("opportunity_id", opportunityId)
-      .maybeSingle();
-    const c = check(res) as Row | null;
+    const c = check(
+      await supabase.from("campaigns").select("id, campaign_events(*)").eq("opportunity_id", opportunityId).maybeSingle(),
+    ) as Row | null;
     if (!c) return null;
     const decided = await decidedEventIds();
     const events = [...(c.campaign_events as Row[])].sort((a, b) => a.position - b.position);
@@ -102,41 +149,91 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
 
   const store: DataStore = {
     async getProfile() {
-      const p = check(
-        await supabase.from("profiles").select("*").eq("id", userId).single(),
-      ) as Row;
+      const p = check(await supabase.from("profiles").select("*").eq("id", userId).single()) as Row;
       return {
         name: p.name,
         email: p.email,
-        year: p.year,
-        branch: p.branch,
         location: p.location,
+        citizenship: p.citizenship,
+        level: p.level,
+        field: p.field,
+        college: p.college,
+        gpa: p.gpa,
         skills: p.skills ?? [],
+        interests: p.interests ?? [],
         documents: p.documents ?? [],
+        notifyDigest: p.notify_digest,
+        notifyReminders: p.notify_reminders,
+        onboarded: p.onboarded_at !== null,
       };
     },
     async updateProfile(input) {
-      check(await supabase.from("profiles").update(input).eq("id", userId));
+      const row: Row = {};
+      const map: Record<string, string> = { notifyDigest: "notify_digest", notifyReminders: "notify_reminders" };
+      for (const [k, v] of Object.entries(input)) if (v !== undefined) row[map[k] ?? k] = v;
+      check(await supabase.from("profiles").update(row).eq("id", userId));
+    },
+    async completeOnboarding(input) {
+      await store.updateProfile(input);
+      check(await supabase.from("profiles").update({ onboarded_at: new Date().toISOString() }).eq("id", userId));
     },
 
     async listSources() {
-      const rows = check(await supabase.from("sources").select("*").order("name")) as Row[];
-      return rows.map(toSource);
-    },
-    async listOpportunities() {
-      const [rows, states] = await Promise.all([
-        supabase.from("matches").select(MATCH_SELECT).then((r) => check(r) as unknown as Row[]),
-        campaignStates(),
+      const [rows, subs] = await Promise.all([
+        supabase.from("sources").select("*").order("name").then((r) => check(r) as Row[]),
+        subscriptions(),
       ]);
-      return rows.map((m) => toOpportunity(m, states.get(m.opportunity.id) ?? null));
+      return rows.map((r) => toSource(r, subs));
+    },
+    async setSourceEnabled(id, enabled) {
+      check(
+        await supabase
+          .from("source_subscriptions")
+          .upsert({ user_id: userId, source_id: id, enabled }, { onConflict: "user_id,source_id" }),
+      );
+    },
+    async addSource(url) {
+      const u = new URL(url);
+      check(
+        await supabase.from("sources").insert({
+          name: u.host.replace(/^www\./, "") + u.pathname.replace(/\/$/, ""),
+          kind: "web",
+          url,
+          owner_id: userId,
+        }),
+      );
+    },
+    async deleteSource(id) {
+      check(await supabase.from("sources").delete().eq("id", id).eq("owner_id", userId));
+    },
+    async retestSource(id) {
+      check(
+        await supabase
+          .from("sources")
+          .update({ retest_requested_at: new Date().toISOString() })
+          .eq("id", id)
+          .eq("owner_id", userId),
+      );
+    },
+
+    async listOpportunities() {
+      const [rows, ctx] = await Promise.all([
+        supabase.from("matches").select(MATCH_SELECT).then((r) => check(r) as unknown as Row[]),
+        context(),
+      ]);
+      return rows.map((m) => toOpportunity(m, ctx));
     },
     async getOpportunity(id) {
-      const m = check(
-        await supabase.from("matches").select(MATCH_SELECT).eq("opportunity_id", id).maybeSingle(),
-      ) as unknown as Row | null;
-      if (!m) return null;
-      const states = await campaignStates();
-      return toOpportunity(m, states.get(id) ?? null);
+      const [m, ctx] = await Promise.all([
+        supabase
+          .from("matches")
+          .select(MATCH_SELECT)
+          .eq("opportunity_id", id)
+          .maybeSingle()
+          .then((r) => check(r) as unknown as Row | null),
+        context(),
+      ]);
+      return m ? toOpportunity(m, ctx) : null;
     },
     async setOpportunityStatus(id, status) {
       check(await supabase.from("matches").update({ status }).eq("opportunity_id", id));
@@ -149,6 +246,25 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
         q.id === questionId ? { ...q, answer } : q,
       );
       check(await supabase.from("matches").update({ questions }).eq("opportunity_id", opportunityId));
+    },
+    async recordView(opportunityId) {
+      check(
+        await supabase.from("opportunity_views").upsert(
+          { user_id: userId, opportunity_id: opportunityId, viewed_at: new Date().toISOString() },
+          { onConflict: "user_id,opportunity_id" },
+        ),
+      );
+    },
+    async listRecentlyViewed(limit) {
+      const rows = check(
+        await supabase
+          .from("opportunity_views")
+          .select("opportunity_id")
+          .order("viewed_at", { ascending: false })
+          .limit(limit),
+      ) as Row[];
+      const all = await store.listOpportunities();
+      return rows.flatMap((r) => all.filter((o) => o.id === r.opportunity_id));
     },
 
     async listCampaigns() {
@@ -175,9 +291,7 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
         decidedEventIds(),
       ]);
       const open = events.filter((e) => !decided.has(e.id));
-      const opps = await Promise.all(
-        open.map((e) => store.getOpportunity(e.campaign.opportunity_id)),
-      );
+      const opps = await Promise.all(open.map((e) => store.getOpportunity(e.campaign.opportunity_id)));
       return open.flatMap((e, i) => {
         const opportunity = opps[i];
         return opportunity ? [{ opportunity, step: toStep(e, false) }] : [];
@@ -203,9 +317,13 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
       );
     },
 
-    async getWeek() {
-      // Calendar isn't connected yet; the UI labels this as sample.
-      return SEED_WEEK;
+    async listActivity(limit) {
+      const rows = check(
+        await supabase.from("agent_activity").select("*").order("created_at", { ascending: false }).limit(limit),
+      ) as Row[];
+      return rows.map(
+        (r): Activity => ({ id: r.id, kind: r.kind, at: stamp(r.created_at), text: r.message, href: r.href }),
+      );
     },
   };
   return store;

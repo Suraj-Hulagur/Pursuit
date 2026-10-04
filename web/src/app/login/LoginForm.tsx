@@ -132,7 +132,7 @@ export function LoginForm({
         </label>
 
         {error && (
-          <p role="alert" className="text-sm text-signal">
+          <p role="alert" className="text-sm text-urgent">
             {error}
           </p>
         )}
@@ -145,7 +145,7 @@ export function LoginForm({
         <button
           type="submit"
           disabled={busy}
-          className="h-11 w-full rounded-full bg-ink font-medium text-card transition-colors hover:bg-signal disabled:opacity-50"
+          className="h-11 w-full rounded-full bg-ink font-medium text-card transition-colors hover:bg-signal-ink disabled:opacity-50"
         >
           {busy ? "One moment…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
