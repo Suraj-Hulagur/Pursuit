@@ -15,7 +15,11 @@ export interface ActionResult {
   message: string;
 }
 
-const refresh = () => revalidatePath("/", "layout");
+const refresh = () => {
+  revalidatePath("/", "layout");
+  revalidatePath("/sources");
+  revalidatePath("/dashboard");
+};
 
 const noteFor = (r: { ok: boolean; demo: boolean }) =>
   !r.ok

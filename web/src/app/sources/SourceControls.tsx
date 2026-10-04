@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   addSourceAction,
   deleteSourceAction,
@@ -9,6 +10,7 @@ import {
 } from "@/app/actions";
 
 export function SourceToggle({ id, name, enabled }: { id: string; name: string; enabled: boolean }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
     <button
@@ -16,7 +18,12 @@ export function SourceToggle({ id, name, enabled }: { id: string; name: string; 
       aria-checked={enabled}
       aria-label={`Scan ${name}`}
       disabled={pending}
-      onClick={() => startTransition(() => setSourceEnabledAction(id, !enabled))}
+      onClick={() =>
+        startTransition(async () => {
+          await setSourceEnabledAction(id, !enabled);
+          router.refresh();
+        })
+      }
       className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors disabled:opacity-60 ${
         enabled ? "border-ink bg-ink" : "border-ink-soft bg-paper-deep"
       }`}
@@ -32,7 +39,9 @@ export function SourceToggle({ id, name, enabled }: { id: string; name: string; 
 }
 
 export function OwnSourceActions({ id, name }: { id: string; name: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [retested, setRetested] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const btn = "h-9 rounded-full border px-3.5 text-sm transition-colors disabled:opacity-50";
 
@@ -40,16 +49,28 @@ export function OwnSourceActions({ id, name }: { id: string; name: string }) {
     <div className="flex gap-2">
       <button
         disabled={pending}
-        onClick={() => startTransition(() => retestSourceAction(id))}
+        onClick={() =>
+          startTransition(async () => {
+            await retestSourceAction(id);
+            setRetested(true);
+            router.refresh();
+            setTimeout(() => setRetested(false), 2000);
+          })
+        }
         className={`${btn} border-ink hover:bg-paper-deep`}
       >
-        Retest
+        {pending ? "Retesting…" : retested ? "✓ Retested" : "Retest"}
       </button>
       {confirming ? (
         <>
           <button
             disabled={pending}
-            onClick={() => startTransition(() => deleteSourceAction(id))}
+            onClick={() =>
+              startTransition(async () => {
+                await deleteSourceAction(id);
+                router.refresh();
+              })
+            }
             className={`${btn} border-urgent bg-urgent text-card`}
             aria-label={`Confirm delete ${name}`}
           >
@@ -74,6 +95,7 @@ export function OwnSourceActions({ id, name }: { id: string; name: string }) {
 }
 
 export function AddSourceForm() {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [note, setNote] = useState<{ text: string; ok: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -83,7 +105,10 @@ export function AddSourceForm() {
     startTransition(async () => {
       const r = await addSourceAction(url);
       setNote({ text: r.message, ok: r.ok });
-      if (r.ok) setUrl("");
+      if (r.ok) {
+        setUrl("");
+        router.refresh();
+      }
     });
   }
 

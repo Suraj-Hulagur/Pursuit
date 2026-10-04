@@ -69,8 +69,6 @@ export default async function Dashboard() {
           <SourceChips sources={sources.filter((s) => s.enabled)} />
         </section>
 
-        <DeadlineCalendar opportunities={live} />
-
         <section aria-labelledby="top3">
           <h2 id="top3" className="sr-only">
             Top 3 this week
@@ -91,6 +89,8 @@ export default async function Dashboard() {
         </section>
 
         <AddOpportunity />
+
+        <DeadlineCalendar opportunities={live} />
 
         <div className="grid gap-5 sm:grid-cols-2">
           <ListPanel title="Closing soon" empty="Nothing closing soon." items={closingSoon} showDeadline />
