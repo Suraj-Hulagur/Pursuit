@@ -33,6 +33,36 @@
   --cat-event-tint: #ece2f7;
 }
 
+.dark {
+  --paper: #11100c;
+  --paper-deep: #191813;
+  --card: #1c1a15;
+  --ink: #f7f4ed;
+  --ink-soft: #a8a295;
+  --rule: #2e2b24;
+  --signal: #ff5c35;
+  --signal-ink: #ff7654;
+  --urgent: #f87171;
+  --urgent-tint: #3b1816;
+  --go: #4ade80;
+  --go-tint: #143521;
+  --maybe: #facc15;
+  --maybe-tint: #382c0f;
+  --maybe-dot: #eab308;
+  --no: #9ca3af;
+  --no-tint: #262420;
+
+  /* categories */
+  --cat-scholarship: #60a5fa;
+  --cat-scholarship-tint: #1e3a5f;
+  --cat-hackathon: #fb923c;
+  --cat-hackathon-tint: #4d230a;
+  --cat-internship: #4ade80;
+  --cat-internship-tint: #143820;
+  --cat-event: #c084fc;
+  --cat-event-tint: #371d57;
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-deep: var(--paper-deep);
@@ -71,6 +101,10 @@ body {
   /* faint paper grain */
   background-image: radial-gradient(rgba(22, 20, 15, 0.035) 1px, transparent 1px);
   background-size: 4px 4px;
+}
+
+.dark body {
+  background-image: radial-gradient(rgba(247, 244, 237, 0.04) 1px, transparent 1px);
 }
 
 ::selection {

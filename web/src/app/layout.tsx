@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { getUser } from "@/lib/auth";
 import { getData } from "@/lib/data";
 import { Nav } from "@/components/Nav";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -43,16 +44,27 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('pursuit-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col overflow-x-hidden">
         <header className="border-b border-ink">
-          <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3 sm:px-6">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 sm:px-6">
             <Link href={user ? "/dashboard" : "/login"} className="group flex items-baseline gap-2 py-1">
               <span className="font-display text-3xl leading-none tracking-tight">Pursuit</span>
               <span className="h-2 w-2 rounded-full bg-signal transition-transform group-hover:scale-150" />
             </Link>
-            <Nav user={header} pendingCount={pendingCount} />
+            <div className="flex items-center gap-3">
+              <Nav user={header} pendingCount={pendingCount} />
+              {!user && <ThemeToggle />}
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>

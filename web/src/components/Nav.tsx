@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "./ThemeToggle";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", match: ["/dashboard"] },
@@ -88,6 +89,7 @@ export function Nav({
       </nav>
 
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         {/* avatar menu */}
         <div ref={avatarRef} className="relative">
           <button
