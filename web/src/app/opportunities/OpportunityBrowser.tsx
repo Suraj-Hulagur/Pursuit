@@ -123,7 +123,11 @@ export function OpportunityBrowser({
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {opportunities.length === 0 ? (
+        <p className="rounded-sm border border-dashed border-ink-soft p-10 text-center text-ink-soft">
+          No opportunities yet. Pursuit adds them here as it finds them, or paste a link on the dashboard.
+        </p>
+      ) : visible.length === 0 ? (
         <p className="rounded-sm border border-dashed border-ink-soft p-10 text-center text-ink-soft">
           Nothing matches. Try another search or category.
         </p>

@@ -11,7 +11,6 @@ import type {
 } from "@/lib/types";
 import type { DataStore } from "./types";
 import { SEED_SOURCES } from "./seed";
-import { createMockStore } from "./mock";
 
 // Reads and writes the tables in db/schema.sql as the signed-in user.
 // RLS limits every query to that user's rows. Writes are limited to what the
@@ -59,7 +58,12 @@ function toSource(r: Row | null, enabled: Map<string, boolean>): Source {
     kind: r.kind ?? "web",
     url: r.url ?? null,
     status,
-    lastChecked: r.last_checked_at ? ago(r.last_checked_at) : (r.retest_requested_at ? "Retest queued" : "Just now"),
+    // A pending retest wins: n8n clears retest_requested_at once it re-scans.
+    lastChecked: r.retest_requested_at
+      ? "Retest queued"
+      : r.last_checked_at
+        ? ago(r.last_checked_at)
+        : "First scan queued",
     isPublic,
     enabled: isPublic ? (enabled.get(r.id) ?? true) : true,
   };
@@ -214,6 +218,8 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
           .upsert({ user_id: userId, source_id: id, enabled }, { onConflict: "user_id,source_id" }),
       );
     },
+    // Users may insert only name, kind, url and owner_id (see db/schema.sql
+    // grants). status defaults to 'repairing' until n8n's first scan.
     async addSource(url) {
       const u = new URL(url);
       check(
@@ -222,23 +228,19 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
           kind: "web",
           url,
           owner_id: userId,
-          status: "healthy",
-          last_checked_at: new Date().toISOString(),
         }),
       );
     },
     async deleteSource(id) {
       check(await supabase.from("sources").delete().eq("id", id).eq("owner_id", userId));
     },
+    // Users may update only retest_requested_at. n8n re-scans, sets status
+    // and last_checked_at, then clears the request.
     async retestSource(id) {
       check(
         await supabase
           .from("sources")
-          .update({
-            status: "healthy",
-            last_checked_at: new Date().toISOString(),
-            retest_requested_at: null,
-          })
+          .update({ retest_requested_at: new Date().toISOString() })
           .eq("id", id)
           .eq("owner_id", userId),
       );
@@ -249,9 +251,8 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
         supabase.from("matches").select(MATCH_SELECT).then((r) => check(r) as unknown as Row[]),
         context(),
       ]);
-      if (rows.length === 0) {
-        return createMockStore({ name: "", email: "" }).listOpportunities();
-      }
+      // Supabase only. No mock fallback: the list, the detail page and
+      // recordView must all agree on which opportunity IDs exist.
       return rows.map((m) => toOpportunity(m, ctx));
     },
     async getOpportunity(id) {
@@ -264,10 +265,7 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
           .then((r) => check(r) as unknown as Row | null),
         context(),
       ]);
-      if (!m) {
-        return createMockStore({ name: "", email: "" }).getOpportunity(id);
-      }
-      return toOpportunity(m, ctx);
+      return m ? toOpportunity(m, ctx) : null;
     },
     async setOpportunityStatus(id, status) {
       check(await supabase.from("matches").update({ status }).eq("opportunity_id", id));
@@ -281,13 +279,18 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
       );
       check(await supabase.from("matches").update({ questions }).eq("opportunity_id", opportunityId));
     },
+    // Best-effort bookkeeping: a failed write is logged, never thrown, so it
+    // can't take down the page that triggered it.
     async recordView(opportunityId) {
-      check(
-        await supabase.from("opportunity_views").upsert(
+      try {
+        const { error } = await supabase.from("opportunity_views").upsert(
           { user_id: userId, opportunity_id: opportunityId, viewed_at: new Date().toISOString() },
           { onConflict: "user_id,opportunity_id" },
-        ),
-      );
+        );
+        if (error) console.error(`[recordView] ${opportunityId}: ${error.message}`);
+      } catch (e) {
+        console.error(`[recordView] ${opportunityId}:`, e);
+      }
     },
     async listRecentlyViewed(limit) {
       const rows = check(
@@ -355,9 +358,6 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
       const rows = check(
         await supabase.from("agent_activity").select("*").order("created_at", { ascending: false }).limit(limit),
       ) as Row[];
-      if (rows.length === 0) {
-        return createMockStore({ name: "", email: "" }).listActivity(limit);
-      }
       return rows.map(
         (r): Activity => ({ id: r.id, kind: r.kind, at: stamp(r.created_at), text: r.message, href: r.href }),
       );

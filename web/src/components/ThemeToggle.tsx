@@ -1,31 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+// The inline script in layout.tsx applies the stored/system theme to <html>
+// before hydration, so the `dark` class on <html> is the source of truth.
+function subscribe(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+const readTheme = () => (document.documentElement.classList.contains("dark") ? "dark" : "light");
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  const [mounted, setMounted] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem("pursuit-theme") as "light" | "dark" | null;
-    if (stored) {
-      setTheme(stored);
-      document.documentElement.classList.toggle("dark", stored === "dark");
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
+  // null on the server, so the placeholder renders until the client knows the theme.
+  const theme = useSyncExternalStore(subscribe, readTheme, () => null);
 
   function toggleTheme() {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    localStorage.setItem("pursuit-theme", next);
+    const next = theme === "dark" ? "light" : "dark";
+    try {
+      localStorage.setItem("pursuit-theme", next);
+    } catch {}
     document.documentElement.classList.toggle("dark", next === "dark");
   }
 
-  if (!mounted) {
+  if (theme === null) {
     return (
       <div className={`h-9 w-9 rounded-full border border-rule ${className}`} />
     );

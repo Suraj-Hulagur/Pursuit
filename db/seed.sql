@@ -9,6 +9,10 @@
 
 -- public sources (owner_id null)
 insert into public.sources (id, name, kind, url, status, last_checked_at) values
+  ('src-unstop', 'Unstop Competitions', 'web', 'https://unstop.com', 'healthy', now() - interval '20 minutes'),
+  ('src-devfolio', 'Devfolio Hackathons', 'web', 'https://devfolio.co', 'healthy', now() - interval '20 minutes'),
+  ('src-mlh', 'Major League Hacking (MLH)', 'web', 'https://mlh.io', 'healthy', now() - interval '20 minutes'),
+  ('src-reddit-scholarships', 'Reddit r/scholarships', 'web', 'https://reddit.com/r/scholarships', 'healthy', now() - interval '20 minutes'),
   ('src-campus', 'Campus Notices', 'web', 'https://example.org/notices', 'healthy', now() - interval '20 minutes'),
   ('src-opencalls', 'Open Calls Weekly', 'web', 'https://example.com/open-calls', 'healthy', now() - interval '20 minutes'),
   ('src-finder', 'Fellowship Finder', 'web', 'https://example.net/fellowships', 'repairing', now() - interval '2 hours'),

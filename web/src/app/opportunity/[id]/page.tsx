@@ -15,7 +15,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
   const db = await getData();
   const [opp, campaign] = await Promise.all([db.getOpportunity(id), db.getCampaign(id)]);
   if (!opp) notFound();
-  await db.recordView(id);
+  // Never let view tracking break the page.
+  await db.recordView(id).catch((e) => console.error(`[recordView] ${id}:`, e));
 
   const dl = formatDeadline(opp.deadline);
   const docsOnHand = opp.documents.filter((d) => d.onHand).length;
