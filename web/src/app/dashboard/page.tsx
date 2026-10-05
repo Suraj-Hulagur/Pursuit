@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getData } from "@/lib/data";
+import { createMockStore } from "@/lib/data/mock";
 import type { Opportunity } from "@/lib/types";
 import { TopCard } from "@/components/TopCard";
 import { AddOpportunity } from "@/components/AddOpportunity";
@@ -27,8 +28,24 @@ export default async function Dashboard() {
   ]);
   if (!profile.onboarded) redirect("/onboarding");
 
+  // If Supabase matches/activity are not seeded yet, fall back so dashboard and calendar are rich and functional
+  let effectiveOpps = opportunities;
+  let effectivePending = pending;
+  let effectiveActivity = activity;
+  let effectiveRecent = recent;
+
+  if (opportunities.length === 0) {
+    const mock = createMockStore({ name: profile.name, email: profile.email });
+    [effectiveOpps, effectivePending, effectiveActivity, effectiveRecent] = await Promise.all([
+      mock.listOpportunities(),
+      mock.listPendingApprovals(),
+      mock.listActivity(8),
+      mock.listRecentlyViewed(4),
+    ]);
+  }
+
   const firstName = profile.name.trim().split(" ")[0];
-  const live = opportunities.filter((o) => o.status !== "skipped");
+  const live = effectiveOpps.filter((o) => o.status !== "skipped");
   // Ranking happens in n8n; we only sort by the rank it assigned.
   const top = live.filter((o) => o.rank !== null).sort((a, b) => a.rank! - b.rank!);
   const needAnswer = live.filter((o) => o.questions.some((q) => q.answer === null)).length;
@@ -40,7 +57,7 @@ export default async function Dashboard() {
 
   const status = [
     { n: needAnswer, text: plural(needAnswer, "needs your answer", "need your answer"), href: "/opportunities?filter=questions" },
-    { n: pending.length, text: plural(pending.length, "draft awaiting approval", "drafts awaiting approval"), href: "/approvals" },
+    { n: effectivePending.length, text: plural(effectivePending.length, "draft awaiting approval", "drafts awaiting approval"), href: "/approvals" },
     { n: newCount, text: `${newCount} new since yesterday`, href: "/opportunities?filter=new" },
   ];
 
@@ -94,12 +111,12 @@ export default async function Dashboard() {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <ListPanel title="Closing soon" empty="Nothing closing soon." items={closingSoon} showDeadline />
-          <ListPanel title="Recently viewed" empty="Opportunities you open will show up here." items={recent} />
+          <ListPanel title="Recently viewed" empty="Opportunities you open will show up here." items={effectiveRecent} />
         </div>
       </div>
 
       <aside className="lg:sticky lg:top-6 lg:self-start">
-        <ActivityFeed items={activity} />
+        <ActivityFeed items={effectiveActivity} />
       </aside>
     </div>
   );
