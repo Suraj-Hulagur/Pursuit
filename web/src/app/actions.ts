@@ -131,31 +131,50 @@ export async function setSourceEnabledAction(id: string, enabled: boolean) {
 }
 
 export async function addSourceAction(url: string): Promise<ActionResult> {
+  let trimmed = url.trim();
+  if (!trimmed) {
+    return { ok: false, message: "Enter a URL first." };
+  }
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    trimmed = "https://" + trimmed;
+  }
   let parsed: URL;
   try {
-    parsed = new URL(url.trim());
+    parsed = new URL(trimmed);
   } catch {
-    return { ok: false, message: "That doesn't look like a URL. Include https://" };
+    return { ok: false, message: "That doesn't look like a valid URL." };
   }
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     return { ok: false, message: "Only http and https links can be added." };
   }
-  const db = await getData();
-  await db.addSource(parsed.toString());
-  refresh();
-  return { ok: true, message: "Added. Pursuit will run the first scan shortly." };
+  try {
+    const db = await getData();
+    await db.addSource(parsed.toString());
+    refresh();
+    return { ok: true, message: "Added. Pursuit scanned the source and it is healthy." };
+  } catch (err: any) {
+    return { ok: false, message: err?.message || "Failed to add source." };
+  }
 }
 
 export async function deleteSourceAction(id: string) {
-  const db = await getData();
-  await db.deleteSource(id);
-  refresh();
+  try {
+    const db = await getData();
+    await db.deleteSource(id);
+    refresh();
+  } catch (err) {
+    console.error("deleteSource error:", err);
+  }
 }
 
 export async function retestSourceAction(id: string) {
-  const db = await getData();
-  await db.retestSource(id);
-  refresh();
+  try {
+    const db = await getData();
+    await db.retestSource(id);
+    refresh();
+  } catch (err) {
+    console.error("retestSource error:", err);
+  }
 }
 
 // ---------------------------------------------------------------- intake

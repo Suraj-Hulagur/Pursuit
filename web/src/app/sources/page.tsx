@@ -2,7 +2,7 @@ import { getData } from "@/lib/data";
 import type { Source } from "@/lib/types";
 import { SourceStatusDot } from "@/components/Badges";
 import { SampleChip } from "@/components/SampleChip";
-import { AddSourceForm, OwnSourceActions, SourceToggle } from "./SourceControls";
+import { AddSourceForm, OwnSourceActions, RetestButton, SourceToggle } from "./SourceControls";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,10 @@ export default async function SourcesPage() {
           {publicSources.map((s) => (
             <li key={s.id} className="flex flex-wrap items-center gap-3 p-4">
               <SourceInfo s={s} />
-              <SourceToggle id={s.id} name={s.name} enabled={s.enabled} />
+              <div className="flex items-center gap-3">
+                {s.status !== "healthy" && <RetestButton id={s.id} name={s.name} />}
+                <SourceToggle id={s.id} name={s.name} enabled={s.enabled} />
+              </div>
             </li>
           ))}
         </ul>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Opportunity } from "@/lib/types";
+import { SEED_OPPORTUNITIES } from "@/lib/data/seed";
 import { CATEGORIES, categoryMeta, istDateKey } from "./format";
 
 const WEEKS = 5;
@@ -13,8 +14,9 @@ export function DeadlineCalendar({ opportunities }: { opportunities: Opportunity
   const start = new Date(today.getTime() - mondayOffset * DAY);
   const days = Array.from({ length: WEEKS * 7 }, (_, i) => new Date(start.getTime() + i * DAY));
 
-  const byDay = new Map<string, Opportunity[]>();
-  for (const o of opportunities) {
+  const itemsList = opportunities.length > 0 ? opportunities : (SEED_OPPORTUNITIES as unknown as Opportunity[]);
+  const byDay = new Map<string, Array<{ id: string; title: string; category: Opportunity["category"] }>>();
+  for (const o of itemsList) {
     byDay.set(o.deadline, [...(byDay.get(o.deadline) ?? []), o]);
   }
 

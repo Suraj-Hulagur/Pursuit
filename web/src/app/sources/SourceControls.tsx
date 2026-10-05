@@ -38,6 +38,31 @@ export function SourceToggle({ id, name, enabled }: { id: string; name: string; 
   );
 }
 
+export function RetestButton({ id, name }: { id: string; name: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [retested, setRetested] = useState(false);
+  const btn = "h-8 rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-50";
+
+  return (
+    <button
+      disabled={pending}
+      onClick={() =>
+        startTransition(async () => {
+          await retestSourceAction(id);
+          setRetested(true);
+          router.refresh();
+          setTimeout(() => setRetested(false), 2000);
+        })
+      }
+      className={`${btn} border-ink hover:bg-paper-deep`}
+      aria-label={`Retest ${name}`}
+    >
+      {pending ? "Retesting…" : retested ? "✓ Retested" : "Retest"}
+    </button>
+  );
+}
+
 export function OwnSourceActions({ id, name }: { id: string; name: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -46,7 +71,7 @@ export function OwnSourceActions({ id, name }: { id: string; name: string }) {
   const btn = "h-9 rounded-full border px-3.5 text-sm transition-colors disabled:opacity-50";
 
   return (
-    <div className="flex gap-2">
+    <div className="flex items-center gap-2">
       <button
         disabled={pending}
         onClick={() =>
@@ -116,15 +141,14 @@ export function AddSourceForm() {
     <form onSubmit={onSubmit}>
       <div className="flex items-center gap-2 rounded-full border border-ink bg-card p-1.5 pl-4">
         <input
-          type="url"
-          inputMode="url"
+          type="text"
           required
           value={url}
           onChange={(e) => {
             setUrl(e.target.value);
             setNote(null);
           }}
-          placeholder="https://… a notice board, listings page or newsletter archive"
+          placeholder="e.g. unstop.com or https://notice-board.edu"
           aria-label="Source URL"
           className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink-soft"
         />

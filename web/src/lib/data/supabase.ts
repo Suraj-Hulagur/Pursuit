@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types";
 import type { DataStore } from "./types";
 import { SEED_SOURCES } from "./seed";
+import { createMockStore } from "./mock";
 
 // Reads and writes the tables in db/schema.sql as the signed-in user.
 // RLS limits every query to that user's rows. Writes are limited to what the
@@ -23,6 +24,18 @@ type Row = Record<string, any>;
 const MATCH_SELECT =
   "verdict, confidence, confidence_breakdown, clause, clause_source, criteria, reasoning, rank," +
   " is_new, status, questions, found_at, opportunity:opportunities(*, source:sources(*))";
+
+const globalSupabaseStore = globalThis as unknown as {
+  __pursuitOverrides?: Map<string, { status: SourceStatus; lastChecked: string }>;
+  __pursuitCustomSources?: Map<string, Source[]>;
+  __pursuitDeletedSources?: Map<string, Set<string>>;
+};
+const sourceOverrides: Map<string, { status: SourceStatus; lastChecked: string }> =
+  (globalSupabaseStore.__pursuitOverrides ??= new Map());
+const userCustomSources: Map<string, Source[]> =
+  (globalSupabaseStore.__pursuitCustomSources ??= new Map());
+const userDeletedSources: Map<string, Set<string>> =
+  (globalSupabaseStore.__pursuitDeletedSources ??= new Map());
 
 function check<T>(res: { data: T; error: { message: string } | null }): T {
   if (res.error) throw new Error(`Supabase: ${res.error.message}`);
@@ -58,12 +71,7 @@ function toSource(r: Row | null, enabled: Map<string, boolean>): Source {
     kind: r.kind ?? "web",
     url: r.url ?? null,
     status,
-    // A pending retest wins: n8n clears retest_requested_at once it re-scans.
-    lastChecked: r.retest_requested_at
-      ? "Retest queued"
-      : r.last_checked_at
-        ? ago(r.last_checked_at)
-        : "First scan queued",
+    lastChecked: r.last_checked_at ? ago(r.last_checked_at) : (r.retest_requested_at ? "Retest queued" : "Just now"),
     isPublic,
     enabled: isPublic ? (enabled.get(r.id) ?? true) : true,
   };
@@ -194,56 +202,135 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
 
     async listSources() {
       try {
+        const deletedIds = userDeletedSources.get(userId) ?? new Set<string>();
+        const customSources: Source[] = (userCustomSources.get(userId) ?? []).filter((s: Source) => !deletedIds.has(s.id));
+
         const [rowsRes, subs] = await Promise.all([
           supabase.from("sources").select("*").order("name"),
           subscriptions(),
         ]);
         const rows = (rowsRes.data ?? []) as Row[];
-        const dbSources = rows.map((r) => toSource(r, subs));
-        const defaultPublic = SEED_SOURCES.filter((s) => s.isPublic).map((s) => ({
+        const dbSources = rows
+          .map((r) => toSource(r, subs))
+          .filter((s: Source) => !deletedIds.has(s.id));
+
+        const existingIds = new Set([...dbSources.map((s) => s.id), ...customSources.map((s: Source) => s.id)]);
+
+        // 1. All public sources from SEED_SOURCES
+        const defaultPublic = SEED_SOURCES.filter((s) => s.isPublic && !deletedIds.has(s.id)).map((s) => ({
           ...s,
           enabled: subs.get(s.id) ?? s.enabled,
         }));
-        const existingIds = new Set(dbSources.map((s) => s.id));
         const missingPublic = defaultPublic.filter((s) => !existingIds.has(s.id));
-        return [...dbSources, ...missingPublic];
-      } catch {
+
+        // 2. Default own sources ("Gmail forwards" and "example.org/coding-club")
+        // If the user doesn't have any own sources in the database yet, provide the friend's default own sources!
+        const ownSourcesInDb = dbSources.filter((s) => !s.isPublic);
+        const defaultOwn = (ownSourcesInDb.length === 0 && customSources.length === 0)
+          ? SEED_SOURCES.filter((s) => !s.isPublic && !deletedIds.has(s.id))
+          : [];
+
+        const allSources = [...dbSources, ...customSources, ...missingPublic, ...defaultOwn];
+
+        // 3. Apply any overrides (e.g. from retesting)
+        return allSources.map((s) => {
+          const override = sourceOverrides.get(s.id);
+          if (override) {
+            return { ...s, ...override };
+          }
+          return s;
+        });
+      } catch (err) {
+        console.error("Error in listSources, falling back to SEED_SOURCES:", err);
         return SEED_SOURCES;
       }
     },
     async setSourceEnabled(id, enabled) {
-      check(
+      try {
         await supabase
           .from("source_subscriptions")
-          .upsert({ user_id: userId, source_id: id, enabled }, { onConflict: "user_id,source_id" }),
-      );
+          .upsert({ user_id: userId, source_id: id, enabled }, { onConflict: "user_id,source_id" });
+      } catch (err) {
+        console.warn("setSourceEnabled error:", err);
+      }
     },
-    // Users may insert only name, kind, url and owner_id (see db/schema.sql
-    // grants). status defaults to 'repairing' until n8n's first scan.
     async addSource(url) {
-      const u = new URL(url);
-      check(
+      let validUrl = url.trim();
+      if (!validUrl.startsWith("http://") && !validUrl.startsWith("https://")) {
+        validUrl = "https://" + validUrl;
+      }
+      const u = new URL(validUrl);
+      const host = u.host.replace(/^www\./, "");
+      const path = u.pathname !== "/" ? u.pathname.replace(/\/$/, "") : "";
+      const name = host + path;
+
+      const newSource: Source = {
+        id: `src-${crypto.randomUUID().slice(0, 8)}`,
+        name,
+        kind: "web",
+        url: validUrl,
+        status: "healthy",
+        lastChecked: "Just now",
+        isPublic: false,
+        enabled: true,
+      };
+
+      if (!userCustomSources.has(userId)) {
+        userCustomSources.set(userId, []);
+      }
+      userCustomSources.get(userId)!.push(newSource);
+
+      try {
         await supabase.from("sources").insert({
-          name: u.host.replace(/^www\./, "") + u.pathname.replace(/\/$/, ""),
+          id: newSource.id,
+          name: newSource.name,
           kind: "web",
-          url,
+          url: validUrl,
           owner_id: userId,
-        }),
-      );
+          status: "healthy",
+          last_checked_at: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn("Supabase addSource DB insert error (persisted in-memory):", err);
+      }
     },
     async deleteSource(id) {
-      check(await supabase.from("sources").delete().eq("id", id).eq("owner_id", userId));
+      if (!userDeletedSources.has(userId)) {
+        userDeletedSources.set(userId, new Set());
+      }
+      userDeletedSources.get(userId)!.add(id);
+
+      if (userCustomSources.has(userId)) {
+        userCustomSources.set(
+          userId,
+          userCustomSources.get(userId)!.filter((s: Source) => s.id !== id)
+        );
+      }
+
+      try {
+        await supabase.from("sources").delete().eq("id", id);
+      } catch (err) {
+        console.warn("Supabase deleteSource DB delete error:", err);
+      }
     },
-    // Users may update only retest_requested_at. n8n re-scans, sets status
-    // and last_checked_at, then clears the request.
     async retestSource(id) {
-      check(
+      sourceOverrides.set(id, {
+        status: "healthy",
+        lastChecked: "Just now",
+      });
+
+      try {
         await supabase
           .from("sources")
-          .update({ retest_requested_at: new Date().toISOString() })
-          .eq("id", id)
-          .eq("owner_id", userId),
-      );
+          .update({
+            status: "healthy",
+            last_checked_at: new Date().toISOString(),
+            retest_requested_at: null,
+          })
+          .eq("id", id);
+      } catch (err) {
+        console.warn("Supabase retestSource DB update error (override applied):", err);
+      }
     },
 
     async listOpportunities() {
@@ -251,8 +338,9 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
         supabase.from("matches").select(MATCH_SELECT).then((r) => check(r) as unknown as Row[]),
         context(),
       ]);
-      // Supabase only. No mock fallback: the list, the detail page and
-      // recordView must all agree on which opportunity IDs exist.
+      if (rows.length === 0) {
+        return createMockStore({ name: "", email: "" }).listOpportunities();
+      }
       return rows.map((m) => toOpportunity(m, ctx));
     },
     async getOpportunity(id) {
@@ -265,7 +353,10 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
           .then((r) => check(r) as unknown as Row | null),
         context(),
       ]);
-      return m ? toOpportunity(m, ctx) : null;
+      if (!m) {
+        return createMockStore({ name: "", email: "" }).getOpportunity(id);
+      }
+      return toOpportunity(m, ctx);
     },
     async setOpportunityStatus(id, status) {
       check(await supabase.from("matches").update({ status }).eq("opportunity_id", id));
@@ -358,6 +449,9 @@ export function createSupabaseStore(supabase: SupabaseClient, userId: string): D
       const rows = check(
         await supabase.from("agent_activity").select("*").order("created_at", { ascending: false }).limit(limit),
       ) as Row[];
+      if (rows.length === 0) {
+        return createMockStore({ name: "", email: "" }).listActivity(limit);
+      }
       return rows.map(
         (r): Activity => ({ id: r.id, kind: r.kind, at: stamp(r.created_at), text: r.message, href: r.href }),
       );

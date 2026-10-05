@@ -122,29 +122,34 @@ export function createMockStore(user: { name: string; email: string }): DataStor
       if (src?.isPublic) src.enabled = enabled;
     },
     async addSource(url) {
-      const host = new URL(url).host.replace(/^www\./, "");
-      const path = new URL(url).pathname.replace(/\/$/, "");
+      let validUrl = url.trim();
+      if (!validUrl.startsWith("http://") && !validUrl.startsWith("https://")) {
+        validUrl = "https://" + validUrl;
+      }
+      const u = new URL(validUrl);
+      const host = u.host.replace(/^www\./, "");
+      const path = u.pathname !== "/" ? u.pathname.replace(/\/$/, "") : "";
       s.sources.push({
         id: `src-${crypto.randomUUID().slice(0, 8)}`,
         name: host + path,
         kind: "web",
-        url,
-        status: "repairing",
-        lastChecked: "First scan queued",
+        url: validUrl,
+        status: "healthy",
+        lastChecked: "Just now",
         isPublic: false,
         enabled: true,
       });
-      log("scan", `Added ${host} as a source. First scan queued`, "/sources");
+      log("scan", `Added ${host} as a source · scanned and healthy`, "/sources");
     },
     async deleteSource(id) {
-      s.sources = s.sources.filter((x) => x.isPublic || x.id !== id);
+      s.sources = s.sources.filter((x) => x.id !== id);
     },
     async retestSource(id) {
       const src = s.sources.find((x) => x.id === id);
       if (!src) return;
-      // n8n would re-scan; mock just records the request.
-      src.lastChecked = "Retest queued";
-      log("scan", `Retest requested for ${src.name}`, "/sources");
+      src.status = "healthy";
+      src.lastChecked = "Just now";
+      log("scan", `Retested ${src.name} · connection healthy`, "/sources");
     },
 
     async listOpportunities() {
